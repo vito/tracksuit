@@ -82,25 +82,19 @@ func (syncer *Syncer) SyncIssuesAndStories() error {
 	var multiErr *multierror.Error
 
 	for _, repo := range repos {
+		repoName := *repo.Owner.Login + "/" + *repo.Name
+
+		log.Println("syncing", repoName)
+
 		if err := syncer.syncRepoStockLabels(repo); err != nil {
-			log.Printf(
-				"skipping %s/%s due to error setting up labels: %s\n",
-				*repo.Owner.Login,
-				*repo.Name,
-				err,
-			)
+			log.Printf("failed setting up labels; skipping %s: %s\n", repoName, err)
 			continue
 		}
 
 		if err := syncer.processRepoIssues(repo); err != nil {
 			multiErr = multierror.Append(
 				multiErr,
-				fmt.Errorf(
-					"errors when processing %s/%s: %s",
-					syncer.OrganizationName,
-					*repo.Name,
-					err,
-				),
+				fmt.Errorf("errors when processing %s: %s", repoName, err),
 			)
 		}
 	}
