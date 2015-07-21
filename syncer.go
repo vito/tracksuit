@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
+	"text/template"
+	"time"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/go-multierror"
@@ -11,6 +14,31 @@ import (
 
 var publicReposFilter = github.RepositoryListByOrgOptions{Type: "public"}
 var openIssuesFilter = github.IssueListByRepoOptions{State: "open"}
+
+var storyStateCommentTemplate = template.Must(
+	template.New("story-state").Parse(
+		`Hi there! We use Pivotal Tracker to provide visibility into what our team is working on.
+
+We are keeping track of this issue in the following stories:
+
+{{range .}}* [{{if eq .State "accepted"}}x{{else}} {{end}}] [#{{.ID}}]({{.URL}}) {{.Name}}
+{{end}}
+
+This comment will be automatically updated as the status in Tracker changes.`,
+	),
+)
+
+var issueClosedCommentTemplate = template.Must(
+	template.New("issue-closed").Parse(
+		`All stories related to this issue have been accepted, so I'm going to close this issue.
+
+Information regarding the stories can be found here:
+
+{{range .}}* [{{if eq .State "accepted"}}x{{else}} {{end}}] [#{{.ID}}]({{.URL}}) {{.Name}}
+{{end}}
+
+If you feel there is still more to be done, feel free to reopen!`),
+)
 
 type Syncer struct {
 	GithubClient  *github.Client
@@ -76,12 +104,38 @@ func (syncer *Syncer) processRepoIssues(repo github.Repository) error {
 	return multiErr.ErrorOrNil()
 }
 
+type StorySet []tracker.Story
+
+func (set StorySet) AllAccepted() bool {
+	allAccepted := true
+	for _, story := range set {
+		if story.State != "accepted" {
+			allAccepted = false
+			break
+		}
+	}
+
+	return allAccepted
+}
+
+func (set StorySet) LastAccepted() time.Time {
+	lastAccepted := time.Unix(0, 0)
+
+	for _, story := range set {
+		if story.AcceptedAt.After(lastAccepted) {
+			lastAccepted = *story.AcceptedAt
+		}
+	}
+
+	return lastAccepted
+}
+
 func (syncer *Syncer) ensureStoryExistsForIssue(
 	repo github.Repository,
 	issue github.Issue,
 	label string,
 ) error {
-	var allStories []tracker.Story
+	var allStories StorySet
 
 	query := tracker.StoriesQuery{
 		Label: label,
@@ -103,6 +157,8 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 	}
 
 	if len(allStories) == 0 {
+		// no stories for the issue yet; create an initial one
+
 		story := storyForIssue(label, issue)
 
 		createdStory, err := syncer.ProjectClient.CreateStory(story)
@@ -113,9 +169,37 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 		log.Println("created story for", label, "at", createdStory.URL)
 
 		allStories = append(allStories, createdStory)
+
+	} else if allStories.AllAccepted() && issue.UpdatedAt.After(allStories.LastAccepted()) {
+		// issue has been reopened
+
+		story := choreForIssue(label, issue)
+
+		createdStory, err := syncer.ProjectClient.CreateStory(story)
+		if err != nil {
+			return fmt.Errorf("failed to create story for %s: %s", label, err)
+		}
+
+		log.Println("created chore for reopening of", label, "at", createdStory.URL)
+
+		allStories = append(allStories, createdStory)
 	}
 
-	return syncer.ensureCommentWithStories(repo, issue, allStories)
+	err := syncer.ensureCommentWithStories(repo, issue, allStories)
+	if err != nil {
+		return fmt.Errorf("failed to upsert comment for stories: %s", err)
+	}
+
+	if allStories.AllAccepted() {
+		log.Println("all stories for", label, "are accepted; closing!")
+
+		err := syncer.closeIssue(repo, issue, allStories)
+		if err != nil {
+			return fmt.Errorf("failed to close issue: %s", err)
+		}
+	}
+
+	return nil
 }
 
 func (syncer *Syncer) ensureCommentWithStories(
@@ -141,33 +225,12 @@ func (syncer *Syncer) ensureCommentWithStories(
 		}
 	}
 
-	commentBody := `Hi there! We use Pivotal Tracker to provide visibility into what our team is working on.
-
-We are keeping track of this issue in the following stories:
-
-`
-
-	for _, story := range allStories {
-		check := " "
-		if story.State == "accepted" {
-			check = "x"
-		}
-
-		storyListEntry := fmt.Sprintf(
-			"* [%s] [#%d](%s): %s",
-			check,
-			story.ID,
-			story.URL,
-			story.Name,
-		)
-
-		commentBody += storyListEntry + "\n"
+	buf := new(bytes.Buffer)
+	if err := storyStateCommentTemplate.Execute(buf, allStories); err != nil {
+		return fmt.Errorf("error building comment body: %s", err)
 	}
 
-	commentBody += `
-This comment will be automatically updated as the status in Tracker changes.
-
-I will automatically close this issue when the above stories are done.`
+	commentBody := buf.String()
 
 	if existingComment == nil {
 		createdComment, _, err := syncer.GithubClient.Issues.CreateComment(
@@ -198,6 +261,42 @@ I will automatically close this issue when the above stories are done.`
 	}
 
 	return nil
+}
+
+func (syncer *Syncer) closeIssue(
+	repo github.Repository,
+	issue github.Issue,
+	stories StorySet,
+) error {
+	buf := new(bytes.Buffer)
+	if err := issueClosedCommentTemplate.Execute(buf, stories); err != nil {
+		return fmt.Errorf("error building comment body: %s", err)
+	}
+
+	closedMessage := buf.String()
+
+	_, _, err := syncer.GithubClient.Issues.CreateComment(
+		*repo.Owner.Login,
+		*repo.Name,
+		*issue.Number,
+		&github.IssueComment{Body: &closedMessage},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to leave closed message: %s", err)
+	}
+
+	state := "closed"
+	_, _, err = syncer.GithubClient.Issues.Edit(
+		*repo.Owner.Login,
+		*repo.Name,
+		*issue.Number,
+		&github.IssueRequest{State: &state},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to close issue: %s", err)
+	}
+
+	return err
 }
 
 func (syncer *Syncer) allCommentsForIssue(repo github.Repository, issue github.Issue) ([]github.IssueComment, error) {
@@ -268,6 +367,29 @@ func storyForIssue(label string, issue github.Issue) tracker.Story {
 		Name:        *issue.Title,
 		Description: description,
 		Type:        "feature",
+		State:       "unscheduled",
+		Labels:      labels,
+	}
+}
+
+func choreForIssue(label string, issue github.Issue) tracker.Story {
+	labels := []tracker.Label{
+		{Name: label},
+	}
+
+	description := fmt.Sprintf(
+		"[@%s](%s) reopened [%s](%s) on %s",
+		*issue.User.Login,
+		*issue.User.HTMLURL,
+		label,
+		*issue.HTMLURL,
+		issue.UpdatedAt.Format("January 2"),
+	)
+
+	return tracker.Story{
+		Name:        "reopened: " + *issue.Title,
+		Description: description,
+		Type:        "chore",
 		State:       "unscheduled",
 		Labels:      labels,
 	}
