@@ -237,9 +237,27 @@ func (set StorySet) LastAccepted() time.Time {
 }
 
 func (set StorySet) IssueLabels() []string {
+	var labels []string
+
+	var hasBugs bool
+	var hasFeatures bool
+	for _, story := range set {
+		if story.Type == "feature" {
+			hasFeatures = true
+		} else if story.Type == "bug" {
+			hasBugs = true
+		}
+	}
+
+	if hasFeatures {
+		labels = append(labels, IssueLabelEnhancement)
+	} else if hasBugs {
+		labels = append(labels, IssueLabelBug)
+	}
+
 	if set.AllAccepted() {
-		// everything is accepted; remove all labels
-		return []string{}
+		// everything is accepted; only set labels for types of stories, not status
+		return labels
 	}
 
 	allUnscheduled := true
@@ -254,7 +272,8 @@ func (set StorySet) IssueLabels() []string {
 
 		case "started", "finished", "delivered", "rejected":
 			// a story is in-progress; report as in-flight
-			return []string{IssueLabelInFlight}
+			labels = append(labels, IssueLabelInFlight)
+			return labels
 
 		case "unstarted", "planned":
 			// something is scheduled
@@ -266,10 +285,12 @@ func (set StorySet) IssueLabels() []string {
 	}
 
 	if allUnscheduled {
-		return []string{IssueLabelUnscheduled}
+		labels = append(labels, IssueLabelUnscheduled)
 	} else {
-		return []string{IssueLabelScheduled}
+		labels = append(labels, IssueLabelScheduled)
 	}
+
+	return labels
 }
 
 func (syncer *Syncer) ensureStoryExistsForIssue(
@@ -430,7 +451,7 @@ func (syncer *Syncer) syncLabels(
 		return nil
 	}
 
-	log.Println("adding issue labels:", strings.Join(labels, ", "))
+	log.Println("setting issue labels:", strings.Join(labels, ", "))
 
 	for stockLabel, _ := range stockLabels {
 		if !existingLabels[stockLabel] {
