@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strings"
 	"text/template"
 	"time"
 
@@ -14,6 +15,22 @@ import (
 
 var publicReposFilter = github.RepositoryListByOrgOptions{Type: "public"}
 var openIssuesFilter = github.IssueListByRepoOptions{State: "open"}
+
+const IssueLabelUnscheduled = "unscheduled"
+const IssueLabelScheduled = "scheduled"
+const IssueLabelInFlight = "in-flight"
+const IssueLabelBug = "bug"
+const IssueLabelEnhancement = "enhancement"
+
+var stockLabels = map[string]string{
+	IssueLabelUnscheduled: "e4eff7",
+	IssueLabelScheduled:   "f4f4f4",
+	IssueLabelInFlight:    "f3f3d1",
+
+	// respect original github colors
+	IssueLabelBug:         "",
+	IssueLabelEnhancement: "",
+}
 
 var storyStateCommentTemplate = template.Must(
 	template.New("story-state").Parse(
@@ -65,11 +82,27 @@ func (syncer *Syncer) SyncIssuesAndStories() error {
 	var multiErr *multierror.Error
 
 	for _, repo := range repos {
-		err := syncer.processRepoIssues(repo)
-		if err != nil {
+		if err := syncer.syncRepoStockLabels(repo); err != nil {
 			multiErr = multierror.Append(
 				multiErr,
-				fmt.Errorf("errors when processing %s/%s: %s", syncer.OrganizationName, *repo.Name, err),
+				fmt.Errorf(
+					"errors when setting up stock labels in %s/%s: %s",
+					syncer.OrganizationName,
+					*repo.Name,
+					err,
+				),
+			)
+		}
+
+		if err := syncer.processRepoIssues(repo); err != nil {
+			multiErr = multierror.Append(
+				multiErr,
+				fmt.Errorf(
+					"errors when processing %s/%s: %s",
+					syncer.OrganizationName,
+					*repo.Name,
+					err,
+				),
 			)
 		}
 	}
@@ -104,6 +137,79 @@ func (syncer *Syncer) processRepoIssues(repo github.Repository) error {
 	return multiErr.ErrorOrNil()
 }
 
+func (syncer *Syncer) syncRepoStockLabels(repo github.Repository) error {
+	existingLabels, _, err := syncer.GithubClient.Issues.ListLabels(
+		*repo.Owner.Login,
+		*repo.Name,
+		&github.ListOptions{},
+	)
+	if err != nil {
+		return fmt.Errorf(
+			"failed to list labels for %s/%s: %s",
+			*repo.Owner.Login,
+			*repo.Name,
+			err,
+		)
+	}
+
+	missingLabels := map[string]string{}
+	for label, color := range stockLabels {
+		missingLabels[label] = color
+	}
+
+	for _, label := range existingLabels {
+		color, found := stockLabels[*label.Name]
+		if !found {
+			continue
+		}
+
+		delete(missingLabels, *label.Name)
+
+		if len(color) == 0 {
+			// respect existing color
+			continue
+		}
+
+		if color == *label.Color {
+			// color already in sync; skip
+			continue
+		}
+
+		log.Println("updating label", *label.Name, "color to", "#"+color)
+
+		_, _, err := syncer.GithubClient.Issues.EditLabel(
+			*repo.Owner.Login,
+			*repo.Name,
+			*label.Name,
+			&github.Label{
+				Name:  label.Name,
+				Color: &color,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("failed to update label %s: %s", *label.Name, err)
+		}
+	}
+
+	for name, color := range missingLabels {
+		log.Println("creating label", name, "with color", "#"+color)
+
+		_, _, err := syncer.GithubClient.Issues.CreateLabel(
+			*repo.Owner.Login,
+			*repo.Name,
+			&github.Label{
+				Name:  &name,
+				Color: &color,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create label %s: %s", name, err)
+		}
+	}
+
+	return nil
+}
+
 type StorySet []tracker.Story
 
 func (set StorySet) AllAccepted() bool {
@@ -128,6 +234,42 @@ func (set StorySet) LastAccepted() time.Time {
 	}
 
 	return lastAccepted
+}
+
+func (set StorySet) IssueLabels() []string {
+	if set.AllAccepted() {
+		// everything is accepted; remove all labels
+		return []string{}
+	}
+
+	allUnscheduled := true
+	for _, story := range set {
+		switch story.State {
+		case "accepted":
+			// ignore accepted stories; if some are accepted but the rest are
+			// unscheduled, it's still unscheduled
+
+		case "unscheduled":
+			// only mark if all are unscheduled
+
+		case "started", "finished", "delivered", "rejected":
+			// a story is in-progress; report as in-flight
+			return []string{IssueLabelInFlight}
+
+		case "unstarted", "planned":
+			// something is scheduled
+			allUnscheduled = false
+
+		default:
+			log.Fatalln("unknown story state:", story.State)
+		}
+	}
+
+	if allUnscheduled {
+		return []string{IssueLabelUnscheduled}
+	} else {
+		return []string{IssueLabelScheduled}
+	}
 }
 
 func (syncer *Syncer) ensureStoryExistsForIssue(
@@ -185,9 +327,12 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 		allStories = append(allStories, createdStory)
 	}
 
-	err := syncer.ensureCommentWithStories(repo, issue, allStories)
-	if err != nil {
+	if err := syncer.ensureCommentWithStories(repo, issue, allStories); err != nil {
 		return fmt.Errorf("failed to upsert comment for stories: %s", err)
+	}
+
+	if err := syncer.syncLabels(repo, issue, allStories.IssueLabels()); err != nil {
+		return fmt.Errorf("failed to sync story labels: %s", err)
 	}
 
 	if allStories.AllAccepted() {
@@ -259,6 +404,63 @@ func (syncer *Syncer) ensureCommentWithStories(
 
 		log.Println("updated comment:", *updatedComment.HTMLURL)
 	}
+
+	return nil
+}
+
+func (syncer *Syncer) syncLabels(
+	repo github.Repository,
+	issue github.Issue,
+	labels []string,
+) error {
+	existingLabels := map[string]bool{}
+	for _, label := range issue.Labels {
+		existingLabels[*label.Name] = true
+	}
+
+	anyMissing := false
+	for _, label := range labels {
+		if !existingLabels[label] {
+			anyMissing = true
+			break
+		}
+	}
+
+	if !anyMissing {
+		return nil
+	}
+
+	log.Println("adding issue labels:", strings.Join(labels, ", "))
+
+	for stockLabel, _ := range stockLabels {
+		if !existingLabels[stockLabel] {
+			continue
+		}
+
+		resp, err := syncer.GithubClient.Issues.RemoveLabelForIssue(
+			*repo.Owner.Login,
+			*repo.Name,
+			*issue.Number,
+			stockLabel,
+		)
+		if err != nil && !strings.Contains(err.Error(), "404") {
+			return fmt.Errorf("failed to remove label '%s': %s", stockLabel, err)
+		}
+
+		syncer.RemainingGithubRequests = resp.Remaining
+	}
+
+	_, resp, err := syncer.GithubClient.Issues.AddLabelsToIssue(
+		*repo.Owner.Login,
+		*repo.Name,
+		*issue.Number,
+		labels,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to add labels to issue: %s", err)
+	}
+
+	syncer.RemainingGithubRequests = resp.Remaining
 
 	return nil
 }
