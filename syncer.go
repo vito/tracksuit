@@ -34,27 +34,31 @@ var stockLabels = map[string]string{
 
 var storyStateCommentTemplate = template.Must(
 	template.New("story-state").Parse(
-		`Hi there! We use Pivotal Tracker to provide visibility into what our team is working on.
+		`Hi there!
 
-We are keeping track of this issue in the following stories:
+We use Pivotal Tracker to provide visibility into what our team is working on. A story for this issue has been automatically created.
+
+The current status is as follows:
 
 {{range .}}* [{{if eq .State "accepted"}}x{{else}} {{end}}] [#{{.ID}}]({{.URL}}) {{.Name}}
 {{end}}
 
-This comment will be automatically updated as the status in Tracker changes.`,
+This comment, as well as the labels on the story, will be automatically updated as the status in Tracker changes.`,
 	),
 )
 
 var issueClosedCommentTemplate = template.Must(
 	template.New("issue-closed").Parse(
-		`All stories related to this issue have been accepted, so I'm going to close this issue.
+		`Hello again!
 
-Information regarding the stories can be found here:
+All stories related to this issue have been accepted, so I'm going to automatically close this issue.
 
-{{range .}}* [{{if eq .State "accepted"}}x{{else}} {{end}}] [#{{.ID}}]({{.URL}}) {{.Name}}
+At the time of writing, the following stories have been accepted:
+
+{{range .}}* [#{{.ID}}]({{.URL}}) {{.Name}}
 {{end}}
 
-If you feel there is still more to be done, feel free to reopen!`),
+If you feel there is still more to be done or have any questions, feel free to reopen!`),
 )
 
 type Syncer struct {
