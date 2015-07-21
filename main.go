@@ -11,18 +11,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var githubToTracker = flag.Bool(
-	"github-to-tracker",
-	false,
-	"sync Github issues to tracker stories",
-)
-
-var trackerToGithub = flag.Bool(
-	"tracker-to-github",
-	false,
-	"sync Tracker stories to github issues",
-)
-
 var githubToken = flag.String(
 	"github-token",
 	"",
