@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e -x
+
+export GOPATH=$PWD/gopath
+export PATH=$GOPATH/bin:$PATH
+
+cd $(dirname $0)/..
+
+go get ./...
+
+tracksuit \
+  --github-token "$GITHUB_TOKEN" \
+  --tracker-token "$TRACKER_TOKEN" \
+  --project-id "$PROJECT_ID" \
+  --organization "$ORGANIZATION"

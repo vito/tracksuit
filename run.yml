@@ -1,0 +1,17 @@
+---
+platform: linux
+
+image: docker:///golang
+
+params:
+  GITHUB_TOKEN:
+  TRACKER_TOKEN:
+  PROJECT_ID:
+  ORGANIZATION:
+
+inputs:
+- name: tracksuit
+  path: gopath/src/github.com/vito/tracksuit
+
+run:
+  path: gopath/src/github.com/vito/tracksuit/scripts/run
