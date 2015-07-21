@@ -71,12 +71,9 @@ type Syncer struct {
 }
 
 func (syncer *Syncer) SyncIssuesAndStories() error {
-	repos, _, err := syncer.GithubClient.Repositories.ListByOrg(
-		syncer.OrganizationName,
-		&publicReposFilter,
-	)
+	repos, err := syncer.allRepos()
 	if err != nil {
-		return fmt.Errorf("failed to fetch issues: %s", err)
+		return fmt.Errorf("failed to fetch repos: %s", err)
 	}
 
 	var multiErr *multierror.Error
@@ -103,11 +100,7 @@ func (syncer *Syncer) SyncIssuesAndStories() error {
 }
 
 func (syncer *Syncer) processRepoIssues(repo github.Repository) error {
-	issues, _, err := syncer.GithubClient.Issues.ListByRepo(
-		syncer.OrganizationName,
-		*repo.Name,
-		&openIssuesFilter,
-	)
+	issues, err := syncer.allIssues(repo)
 	if err != nil {
 		return fmt.Errorf("failed to fetch issues for %s: %s", *repo.Name, err)
 	}
@@ -519,34 +512,6 @@ func (syncer *Syncer) closeIssue(
 	}
 
 	return err
-}
-
-func (syncer *Syncer) allCommentsForIssue(repo github.Repository, issue github.Issue) ([]github.IssueComment, error) {
-	options := &github.IssueListCommentsOptions{}
-
-	var allComments []github.IssueComment
-
-	for {
-		comments, _, err := syncer.GithubClient.Issues.ListComments(
-			*repo.Owner.Login,
-			*repo.Name,
-			*issue.Number,
-			options,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(comments) == 0 {
-			break
-		}
-
-		allComments = append(allComments, comments...)
-
-		options.Page++
-	}
-
-	return allComments, nil
 }
 
 func (syncer *Syncer) currentUser() (*github.User, error) {
