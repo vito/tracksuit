@@ -63,21 +63,17 @@ type Syncer struct {
 
 	OrganizationName string
 
-	RemainingGithubRequests int
-
 	cachedUser *github.User
 }
 
 func (syncer *Syncer) SyncIssuesAndStories() error {
-	repos, res, err := syncer.GithubClient.Repositories.ListByOrg(
+	repos, _, err := syncer.GithubClient.Repositories.ListByOrg(
 		syncer.OrganizationName,
 		&publicReposFilter,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to fetch issues: %s", err)
 	}
-
-	syncer.RemainingGithubRequests = res.Remaining
 
 	var multiErr *multierror.Error
 
@@ -472,7 +468,7 @@ func (syncer *Syncer) syncLabels(
 	log.Println("setting issue labels:", strings.Join(labels, ", "))
 
 	for _, label := range labelsToRemove {
-		resp, err := syncer.GithubClient.Issues.RemoveLabelForIssue(
+		_, err := syncer.GithubClient.Issues.RemoveLabelForIssue(
 			*repo.Owner.Login,
 			*repo.Name,
 			*issue.Number,
@@ -481,11 +477,9 @@ func (syncer *Syncer) syncLabels(
 		if err != nil && !strings.Contains(err.Error(), "404") {
 			return fmt.Errorf("failed to remove label '%s': %s", label, err)
 		}
-
-		syncer.RemainingGithubRequests = resp.Remaining
 	}
 
-	_, resp, err := syncer.GithubClient.Issues.AddLabelsToIssue(
+	_, _, err := syncer.GithubClient.Issues.AddLabelsToIssue(
 		*repo.Owner.Login,
 		*repo.Name,
 		*issue.Number,
@@ -494,8 +488,6 @@ func (syncer *Syncer) syncLabels(
 	if err != nil {
 		return fmt.Errorf("failed to add labels to issue: %s", err)
 	}
-
-	syncer.RemainingGithubRequests = resp.Remaining
 
 	return nil
 }

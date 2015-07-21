@@ -83,5 +83,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Println("synced; remaining requests:", syncer.RemainingGithubRequests)
+	log.Println("synced; remaining requests:", syncer.GithubClient.Rate.Remaining)
 }
