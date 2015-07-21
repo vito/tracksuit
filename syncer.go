@@ -138,18 +138,15 @@ func (syncer *Syncer) processRepoIssues(repo github.Repository) error {
 }
 
 func (syncer *Syncer) syncRepoStockLabels(repo github.Repository) error {
+	logName := *repo.Owner.Login + "/" + *repo.Name
+
 	existingLabels, _, err := syncer.GithubClient.Issues.ListLabels(
 		*repo.Owner.Login,
 		*repo.Name,
 		&github.ListOptions{},
 	)
 	if err != nil {
-		return fmt.Errorf(
-			"failed to list labels for %s/%s: %s",
-			*repo.Owner.Login,
-			*repo.Name,
-			err,
-		)
+		return fmt.Errorf("failed to list labels for %s: %s", logName, err)
 	}
 
 	missingLabels := map[string]string{}
@@ -175,7 +172,7 @@ func (syncer *Syncer) syncRepoStockLabels(repo github.Repository) error {
 			continue
 		}
 
-		log.Println("updating label", *label.Name, "color to", "#"+color)
+		log.Printf("updating label '%s' in repo %s\n", *label.Name, logName)
 
 		_, _, err := syncer.GithubClient.Issues.EditLabel(
 			*repo.Owner.Login,
@@ -187,12 +184,12 @@ func (syncer *Syncer) syncRepoStockLabels(repo github.Repository) error {
 			},
 		)
 		if err != nil {
-			return fmt.Errorf("failed to update label %s: %s", *label.Name, err)
+			return fmt.Errorf("failed to update label '%s' in %s: %s", *label.Name, logName, err)
 		}
 	}
 
 	for name, color := range missingLabels {
-		log.Println("creating label", name, "with color", "#"+color)
+		log.Printf("creating label '%s' in repo %s\n", name, logName)
 
 		_, _, err := syncer.GithubClient.Issues.CreateLabel(
 			*repo.Owner.Login,
@@ -203,7 +200,7 @@ func (syncer *Syncer) syncRepoStockLabels(repo github.Repository) error {
 			},
 		)
 		if err != nil {
-			return fmt.Errorf("failed to create label %s: %s", name, err)
+			return fmt.Errorf("failed to create label '%s' in %s: %s", name, logName, err)
 		}
 	}
 
