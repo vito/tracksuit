@@ -7,6 +7,22 @@ import (
 	"github.com/xoebus/go-tracker"
 )
 
+const IssueLabelUnscheduled = "unscheduled"
+const IssueLabelScheduled = "scheduled"
+const IssueLabelInFlight = "in-flight"
+const IssueLabelBug = "bug"
+const IssueLabelEnhancement = "enhancement"
+
+var stockLabels = map[string]string{
+	IssueLabelUnscheduled: "e4eff7",
+	IssueLabelScheduled:   "f4f4f4",
+	IssueLabelInFlight:    "f3f3d1",
+
+	// respect original github colors
+	IssueLabelBug:         "",
+	IssueLabelEnhancement: "",
+}
+
 type StorySet []tracker.Story
 
 func (set StorySet) AllAccepted() bool {

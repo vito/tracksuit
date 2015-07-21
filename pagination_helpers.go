@@ -2,13 +2,16 @@ package main
 
 import "github.com/google/go-github/github"
 
+var publicReposFilter = github.RepositoryListByOrgOptions{Type: "public"}
+var openIssuesFilter = github.IssueListByRepoOptions{State: "open"}
+
 func (syncer *Syncer) allRepos() ([]github.Repository, error) {
 	options := publicReposFilter
 
 	var all []github.Repository
 
 	for {
-		resources, _, err := syncer.GithubClient.Repositories.ListByOrg(
+		resources, resp, err := syncer.GithubClient.Repositories.ListByOrg(
 			syncer.OrganizationName,
 			&options,
 		)
@@ -22,7 +25,11 @@ func (syncer *Syncer) allRepos() ([]github.Repository, error) {
 
 		all = append(all, resources...)
 
-		options.Page++
+		if resp.NextPage == 0 {
+			break
+		}
+
+		options.ListOptions.Page = resp.NextPage
 	}
 
 	return all, nil
@@ -34,7 +41,7 @@ func (syncer *Syncer) allIssues(repo github.Repository) ([]github.Issue, error) 
 	var all []github.Issue
 
 	for {
-		resources, _, err := syncer.GithubClient.Issues.ListByRepo(
+		resources, resp, err := syncer.GithubClient.Issues.ListByRepo(
 			*repo.Owner.Login,
 			*repo.Name,
 			&options,
@@ -49,7 +56,11 @@ func (syncer *Syncer) allIssues(repo github.Repository) ([]github.Issue, error) 
 
 		all = append(all, resources...)
 
-		options.Page++
+		if resp.NextPage == 0 {
+			break
+		}
+
+		options.ListOptions.Page = resp.NextPage
 	}
 
 	return all, nil
@@ -61,7 +72,7 @@ func (syncer *Syncer) allCommentsForIssue(repo github.Repository, issue github.I
 	var all []github.IssueComment
 
 	for {
-		resources, _, err := syncer.GithubClient.Issues.ListComments(
+		resources, resp, err := syncer.GithubClient.Issues.ListComments(
 			*repo.Owner.Login,
 			*repo.Name,
 			*issue.Number,
@@ -77,7 +88,11 @@ func (syncer *Syncer) allCommentsForIssue(repo github.Repository, issue github.I
 
 		all = append(all, resources...)
 
-		options.Page++
+		if resp.NextPage == 0 {
+			break
+		}
+
+		options.ListOptions.Page = resp.NextPage
 	}
 
 	return all, nil
