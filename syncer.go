@@ -322,7 +322,7 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 	if len(allStories) == 0 {
 		// no stories for the issue yet; create an initial one
 
-		story := storyForIssue(label, issue)
+		story := choreForNewIssue(label, issue)
 
 		createdStory, err := syncer.ProjectClient.CreateStory(story)
 		if err != nil {
@@ -336,7 +336,7 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 	} else if allStories.AllAccepted() && issue.UpdatedAt.After(allStories.LastAccepted()) {
 		// issue has been reopened
 
-		story := choreForIssue(label, issue)
+		story := choreForReopenedIssue(label, issue)
 
 		createdStory, err := syncer.ProjectClient.CreateStory(story)
 		if err != nil {
@@ -439,33 +439,47 @@ func (syncer *Syncer) syncLabels(
 		existingLabels[*label.Name] = true
 	}
 
-	anyMissing := false
+	labelsToAdd := []string{}
 	for _, label := range labels {
 		if !existingLabels[label] {
-			anyMissing = true
-			break
+			labelsToAdd = append(labelsToAdd, label)
 		}
 	}
 
-	if !anyMissing {
-		return nil
-	}
-
-	log.Println("setting issue labels:", strings.Join(labels, ", "))
-
+	labelsToRemove := []string{}
 	for stockLabel, _ := range stockLabels {
 		if !existingLabels[stockLabel] {
 			continue
 		}
 
+		stillHasLabel := false
+		for _, label := range labels {
+			if label == stockLabel {
+				stillHasLabel = true
+				break
+			}
+		}
+
+		if !stillHasLabel {
+			labelsToRemove = append(labelsToRemove, stockLabel)
+		}
+	}
+
+	if len(labelsToRemove) == 0 && len(labelsToAdd) == 0 {
+		return nil
+	}
+
+	log.Println("setting issue labels:", strings.Join(labels, ", "))
+
+	for _, label := range labelsToRemove {
 		resp, err := syncer.GithubClient.Issues.RemoveLabelForIssue(
 			*repo.Owner.Login,
 			*repo.Name,
 			*issue.Number,
-			stockLabel,
+			label,
 		)
 		if err != nil && !strings.Contains(err.Error(), "404") {
-			return fmt.Errorf("failed to remove label '%s': %s", stockLabel, err)
+			return fmt.Errorf("failed to remove label '%s': %s", label, err)
 		}
 
 		syncer.RemainingGithubRequests = resp.Remaining
@@ -475,7 +489,7 @@ func (syncer *Syncer) syncLabels(
 		*repo.Owner.Login,
 		*repo.Name,
 		*issue.Number,
-		labels,
+		labelsToAdd,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to add labels to issue: %s", err)
@@ -567,7 +581,7 @@ func trackerLabelForIssue(repo github.Repository, issue github.Issue) string {
 	return fmt.Sprintf("%s/%s#%d", *repo.Owner.Login, *repo.Name, *issue.Number)
 }
 
-func storyForIssue(label string, issue github.Issue) tracker.Story {
+func choreForNewIssue(label string, issue github.Issue) tracker.Story {
 	labels := []tracker.Label{
 		{Name: label},
 	}
@@ -589,13 +603,13 @@ func storyForIssue(label string, issue github.Issue) tracker.Story {
 	return tracker.Story{
 		Name:        *issue.Title,
 		Description: description,
-		Type:        "feature",
+		Type:        "chore",
 		State:       "unscheduled",
 		Labels:      labels,
 	}
 }
 
-func choreForIssue(label string, issue github.Issue) tracker.Story {
+func choreForReopenedIssue(label string, issue github.Issue) tracker.Story {
 	labels := []tracker.Label{
 		{Name: label},
 	}
