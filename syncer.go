@@ -23,7 +23,7 @@ The current status is as follows:
 {{range .}}* [{{if eq .State "accepted"}}x{{else}} {{end}}] [#{{.ID}}]({{.URL}}) {{.Name}}
 {{end}}
 
-This comment, as well as the labels on the story, will be automatically updated as the status in Tracker changes.`,
+This comment, as well as the labels on the issue, will be automatically updated as the status in Tracker changes.`,
 	),
 )
 
