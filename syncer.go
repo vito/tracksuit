@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/google/go-github/github"
 	"github.com/hashicorp/go-multierror"
@@ -48,6 +49,90 @@ type Syncer struct {
 	OrganizationName string
 
 	cachedUser *github.User
+}
+
+const coolID = 100000000
+
+// const coolID = 99955308
+
+func (syncer *Syncer) BeAJerkToTrackerAPI() {
+	attempt := 0
+
+	var delay time.Duration
+
+	started := time.Now()
+	initialID := 0
+
+	for {
+		attempt++
+
+		log.Println("attempt", attempt)
+
+		createdStory, err := syncer.ProjectClient.CreateStory(tracker.Story{
+			Name: fmt.Sprintf("%d GET (attempt %d)", coolID, attempt),
+			Type: "chore",
+		})
+		if err != nil {
+			log.Println("failed to create story", err)
+			delay = 10 * time.Second
+			time.Sleep(delay)
+			continue
+		}
+
+		if initialID == 0 {
+			initialID = createdStory.ID
+		}
+
+		delta := coolID - createdStory.ID
+
+		log.Println("created", createdStory.ID, "delta:", delta)
+
+		switch {
+		case delta == 0:
+			log.Println("BAM!", createdStory.URL)
+			return
+
+		case delta < 0:
+			log.Println("missed it :(")
+			return
+
+		case delta < 10:
+			if delay != 0 {
+				log.Println("GOING PLAID")
+				delay = 0
+			}
+
+		case delta < 100:
+			if delay != 100*time.Millisecond {
+				log.Println("engaging ludicrous speed")
+				delay = 100 * time.Millisecond
+			}
+
+		case delta < 1000:
+			if delay != 1*time.Second {
+				log.Println("engaging ridiculous speed")
+				delay = 1 * time.Second
+			}
+
+		case delta < 10000:
+			if delay != 2*time.Second {
+				log.Println("engaging light speed")
+				delay = 2 * time.Second
+			}
+
+		default:
+			delay = 10 * time.Second
+		}
+
+		delay /= 4 // :3
+
+		rate := float64(createdStory.ID-initialID) / float64(time.Since(started)/time.Second)
+
+		log.Println("eta at", rate, "stories per second:", time.Duration(float64(delta)/rate)*time.Second)
+		log.Println("waiting", delay, "before trying again")
+
+		time.Sleep(delay)
+	}
 }
 
 func (syncer *Syncer) SyncIssuesAndStories() error {
