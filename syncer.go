@@ -38,7 +38,7 @@ At the time of writing, the following stories have been accepted:
 {{range .}}* [#{{.ID}}]({{.URL}}) {{.Name}}
 {{end}}
 
-If you feel there is still more to be done or have any questions, feel free to reopen!`),
+If you feel there is still more to be done, or if you have any questions, leave a comment and we'll reopen if necessary!`),
 )
 
 type Syncer struct {
