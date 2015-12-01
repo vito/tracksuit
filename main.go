@@ -35,6 +35,8 @@ var organizationName = flag.String(
 	"Github organization name",
 )
 
+var repositories = NewStringSet()
+
 func required(thing interface{}, flag string) {
 	if reflect.DeepEqual(thing, reflect.Zero(reflect.TypeOf(thing)).Interface()) {
 		println("must specify " + flag)
@@ -43,6 +45,12 @@ func required(thing interface{}, flag string) {
 }
 
 func main() {
+	flag.Var(
+		&repositories,
+		"repositories",
+		"Repositories to sync, can be provided more than once (default: all in provided organization)",
+	)
+
 	flag.Parse()
 
 	required(*trackerToken, "--tracker-token")
@@ -64,6 +72,7 @@ func main() {
 		ProjectClient: projectClient,
 
 		OrganizationName: *organizationName,
+		Repositories:     repositories,
 	}
 
 	if err := syncer.SyncIssuesAndStories(); err != nil {

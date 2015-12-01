@@ -46,12 +46,13 @@ type Syncer struct {
 	ProjectClient tracker.ProjectClient
 
 	OrganizationName string
+	Repositories     StringSet
 
 	cachedUser *github.User
 }
 
 func (syncer *Syncer) SyncIssuesAndStories() error {
-	repos, err := syncer.allRepos()
+	repos, err := syncer.reposToSync()
 	if err != nil {
 		return fmt.Errorf("failed to fetch repos: %s", err)
 	}
