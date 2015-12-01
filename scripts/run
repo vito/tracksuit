@@ -13,4 +13,5 @@ tracksuit \
   --github-token "$GITHUB_TOKEN" \
   --tracker-token "$TRACKER_TOKEN" \
   --project-id "$PROJECT_ID" \
-  --organization "$ORGANIZATION"
+  --organization "$ORGANIZATION" \
+  --repositories "$REPOSITORIES"

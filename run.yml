@@ -8,6 +8,7 @@ params:
   TRACKER_TOKEN:
   PROJECT_ID:
   ORGANIZATION:
+  REPOSITORIES:
 
 inputs:
 - name: tracksuit

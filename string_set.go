@@ -11,7 +11,10 @@ func NewStringSet() StringSet {
 }
 
 func (ss *StringSet) Set(arg string) error {
-	ss.set[arg] = struct{}{}
+	args := strings.Split(arg, ",")
+	for _, s := range args {
+		ss.set[s] = struct{}{}
+	}
 	return nil
 }
 
