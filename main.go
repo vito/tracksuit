@@ -48,7 +48,7 @@ func main() {
 	flag.Var(
 		&repositories,
 		"repositories",
-		"Repositories to sync, can be provided more than once (default: all in provided organization)",
+		"Comma separated list of repositories to sync, can be provided more than once (default: all in provided organization)",
 	)
 
 	flag.Parse()
