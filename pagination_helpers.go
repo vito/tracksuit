@@ -5,10 +5,10 @@ import "github.com/google/go-github/github"
 var publicReposFilter = github.RepositoryListByOrgOptions{Type: "public"}
 var openIssuesFilter = github.IssueListByRepoOptions{State: "open"}
 
-func (syncer *Syncer) allRepos() ([]github.Repository, error) {
+func (syncer *Syncer) reposToSync() ([]github.Repository, error) {
 	options := publicReposFilter
 
-	var all []github.Repository
+	var repos []github.Repository
 
 	for {
 		resources, resp, err := syncer.GithubClient.Repositories.ListByOrg(
@@ -23,7 +23,11 @@ func (syncer *Syncer) allRepos() ([]github.Repository, error) {
 			break
 		}
 
-		all = append(all, resources...)
+		for _, repo := range resources {
+			if syncer.Repositories.IsEmpty() || syncer.Repositories.Contains(*repo.Name) {
+				repos = append(repos, repo)
+			}
+		}
 
 		if resp.NextPage == 0 {
 			break
@@ -32,7 +36,7 @@ func (syncer *Syncer) allRepos() ([]github.Repository, error) {
 		options.ListOptions.Page = resp.NextPage
 	}
 
-	return all, nil
+	return repos, nil
 }
 
 func (syncer *Syncer) allIssues(repo github.Repository) ([]github.Issue, error) {
