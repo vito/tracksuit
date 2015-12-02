@@ -13,6 +13,11 @@ func NewStringSet() StringSet {
 func (ss *StringSet) Set(arg string) error {
 	args := strings.Split(arg, ",")
 	for _, s := range args {
+		if s == "" {
+			// split("") results in [""]
+			continue
+		}
+
 		ss.set[s] = struct{}{}
 	}
 	return nil
