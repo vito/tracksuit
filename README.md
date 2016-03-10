@@ -1,5 +1,7 @@
 # tracksuit
 
+![Tracksuit Mascot](images/tracksuit.jpg)
+
 keeps Github issues and Tracker stories in sync by doing the following:
 
 * if an issue exists with no stories labelled with `reponame/username#123`,
