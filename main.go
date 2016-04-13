@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+  "net/url"
 
 	"github.com/google/go-github/github"
 	"github.com/xoebus/go-tracker"
@@ -64,8 +65,16 @@ func main() {
 
 	githubClient := github.NewClient(ghAuth)
 
-	trackerClient := tracker.NewClient(*trackerToken)
-	projectClient := trackerClient.InProject(*projectID)
+  trackerClient := tracker.NewClient(*trackerToken)
+  projectClient := trackerClient.InProject(*projectID)
+
+  // TODO: Enable overriding of githubClient.BaseURL via command line argument
+   var Url *url.URL
+   Url, err := url.Parse("https://github.homedepot.com/api/v3/")
+       if err != nil {
+               panic(err)
+                   }
+   githubClient.BaseURL = Url
 
 	syncer := &Syncer{
 		GithubClient:  githubClient,
