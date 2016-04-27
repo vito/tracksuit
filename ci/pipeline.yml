@@ -1,0 +1,29 @@
+resources:
+- name: tracksuit
+  type: git
+  source:
+    uri: https://github.com/billimek/tracksuit.git
+    branch: enterprise_github
+- name: periodic-tracksuit
+  type: time
+  source:
+    interval: 2m
+- name: notify-slack
+  type: slack-notification
+  source:
+    url: {{slack-webhook-url}}
+resource_types:
+  - name: slack-notification
+    type: docker-image
+    source:
+      repository: cfcommunity/slack-notification-resource
+jobs:
+- name: tracksuit
+  public: true
+  serial: true
+  plan:
+  - get: tracksuit
+  - get: periodic-tracksuit
+    trigger: true
+  - task: tracksuit
+    file: tracksuit/ci/build.yml
