@@ -7,14 +7,14 @@ resources:
 - name: periodic-tracksuit
   type: time
   source:
-    interval: 2m
+    interval: 10m
 jobs:
-- name: tracksuit-job
+- name: tracksuit
   public: true
   serial: true
   plan:
   - get: tracksuit
   #- get: periodic-tracksuit
     trigger: true
-  - task: tracksuit-task
+  - task: run
     file: tracksuit/ci/build.yml
