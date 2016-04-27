@@ -1,5 +1,5 @@
 resources:
-- name: tracksuit-resource
+- name: tracksuit
   type: git
   source:
     uri: https://github.com/billimek/tracksuit.git
@@ -13,8 +13,8 @@ jobs:
   public: true
   serial: true
   plan:
-  - get: tracksuit-resource
+  - get: tracksuit
   #- get: periodic-tracksuit
     trigger: true
   - task: tracksuit-task
-    file: tracksuit-resource/ci/build.yml
+    file: tracksuit/ci/build.yml
