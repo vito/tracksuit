@@ -3,7 +3,7 @@ resources:
   type: git
   source:
     uri: https://github.com/billimek/tracksuit.git
-    branch: enterprise_github
+    branch: concourse
 - name: periodic-tracksuit
   type: time
   source:
