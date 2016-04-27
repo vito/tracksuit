@@ -7,7 +7,7 @@ image_resource:
     tag: 1.6-alpine
 
 inputs:
-- name: tracksuit-job
+- name: tracksuit-task
 
 run:
   path: ./tracksuit/scripts/run
