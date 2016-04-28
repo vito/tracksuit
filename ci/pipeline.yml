@@ -13,7 +13,7 @@ jobs:
       PROJECT_ID: {{tracksuit-tracker-id}}
       ORGANIZATION: {{tracksuit-github-org}}
       GITHUB_URL: {{tracksuit-github-url}}
-      GITHUB_REPOS: {{tracksuit-github-repos}}
+      REPOSITORIES: {{tracksuit-github-repos}}
 
 resources:
 - name: tracksuit
