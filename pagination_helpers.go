@@ -11,7 +11,7 @@ func (syncer *Syncer) reposToSync() ([]github.Repository, error) {
 
 	var repos []github.Repository
 
-	// TODO: clean-up how these two for loops operates (e.g. checking first by org and then by user)
+	// TODO: is there a more elgant way to handle checking by eithe org or by user without having to spin through two for loops?
 	for {
 		resources, resp, err := syncer.GithubClient.Repositories.ListByOrg(
 			syncer.OrganizationName,
