@@ -2,8 +2,8 @@
 
 set -e -x
 
-#export GOPATH=$PWD/gopath
-#export PATH=$GOPATH/bin:$PATH
+export GOPATH=$PWD/gopath
+export PATH=$GOPATH/bin:$PATH
 
 cd $(dirname $0)/..
 
