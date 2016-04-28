@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 	"reflect"
-  "net/url"
-
+	"net/url"
+	
 	"github.com/google/go-github/github"
 	"github.com/xoebus/go-tracker"
 	"golang.org/x/oauth2"
@@ -43,7 +43,6 @@ var githuburl = flag.String(
 )
 
 
-
 var repositories = NewStringSet()
 
 func required(thing interface{}, flag string) {
@@ -73,14 +72,14 @@ func main() {
 
 	githubClient := github.NewClient(ghAuth)
 
-  if *githuburl != "" {
-  	var Url *url.URL
-   	Url, err := url.Parse(*githuburl)
-       if err != nil {
-               panic(err)
-                   }
-   githubClient.BaseURL = Url
-  }
+	if *githuburl != "" {
+		var Url *url.URL
+		Url, err := url.Parse(*githuburl)
+		if err != nil {
+			panic(err)
+		}
+		githubClient.BaseURL = Url
+	}
 
   trackerClient := tracker.NewClient(*trackerToken)
   projectClient := trackerClient.InProject(*projectID)
