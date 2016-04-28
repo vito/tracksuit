@@ -47,7 +47,7 @@ type Syncer struct {
 
 	OrganizationName string
 	Repositories     StringSet
-  BaseURL          string
+	BaseURL          string
 
 	cachedUser *github.User
 }
