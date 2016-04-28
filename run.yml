@@ -11,6 +11,7 @@ params:
   PROJECT_ID:
   ORGANIZATION:
   REPOSITORIES:
+  GITHUB_URL: 
 
 inputs:
 - name: tracksuit

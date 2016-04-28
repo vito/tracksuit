@@ -1,20 +1,28 @@
+jobs:
+- name: tracksuit
+  serial: true
+  plan:
+  - get: periodic-tracksuit
+    trigger: false
+  - get: tracksuit
+  - task: tracksuit
+    file: tracksuit/run.yml
+    params:
+      GITHUB_TOKEN: {{tracksuit-github-token}}
+      TRACKER_TOKEN: {{tracksuit-tracker-token}}
+      PROJECT_ID: {{tracksuit-tracker-id}}
+      ORGANIZATION: {{tracksuit-github-org}}
+      GITHUB_URL: {{tracksuit-github-url}}
+      GITHUB_REPOS: {{tracksuit-github-repos}}
+
 resources:
 - name: tracksuit
   type: git
   source:
     uri: https://github.com/billimek/tracksuit.git
     branch: concourse
+
 - name: periodic-tracksuit
   type: time
   source:
     interval: 10m
-jobs:
-- name: tracksuit
-  public: true
-  serial: true
-  plan:
-  - get: tracksuit
-  #- get: periodic-tracksuit
-    trigger: true
-  - task: run
-    file: tracksuit/ci/build.yml
