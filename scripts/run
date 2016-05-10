@@ -7,7 +7,7 @@ export PATH=$GOPATH/bin:$PATH
 
 cd $(dirname $0)/..
 
-#go get ./...
+go get ./...
 
 tracksuit \
   --github-token "$GITHUB_TOKEN" \
