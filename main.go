@@ -6,8 +6,7 @@ import (
 	"os"
 	"reflect"
 	"net/url"
-	"time"
-
+	
 	"github.com/google/go-github/github"
 	"github.com/xoebus/go-tracker"
 	"golang.org/x/oauth2"
@@ -82,9 +81,6 @@ func main() {
 		githubClient.BaseURL = Url
 	}
 
-	t := time.NewTicker(2 * time.Minute)
-	for _ = range t.C {
-
   trackerClient := tracker.NewClient(*trackerToken)
   projectClient := trackerClient.InProject(*projectID)
 
@@ -104,5 +100,4 @@ func main() {
 	}
 
 	log.Println("synced; remaining requests:", syncer.GithubClient.Rate().Remaining)
-}
 }
