@@ -1,0 +1,15 @@
+[submodule "vendor/github.com/google/go-github"]
+	path = vendor/github.com/google/go-github
+	url = git://github.com/google/go-github
+[submodule "vendor/github.com/google/go-querystring"]
+	path = vendor/github.com/google/go-querystring
+	url = git://github.com/google/go-querystring
+[submodule "vendor/github.com/hashicorp/errwrap"]
+	path = vendor/github.com/hashicorp/errwrap
+	url = git://github.com/hashicorp/errwrap
+[submodule "vendor/github.com/hashicorp/go-multierror"]
+	path = vendor/github.com/hashicorp/go-multierror
+	url = git://github.com/hashicorp/go-multierror
+[submodule "vendor/github.com/xoebus/go-tracker"]
+	path = vendor/github.com/xoebus/go-tracker
+	url = git://github.com/vito/go-tracker
