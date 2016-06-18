@@ -1,0 +1,6 @@
+= Tracker
+
+image:https://travis-ci.org/xoebus/go-tracker.svg?branch=master["Build Status", link="https://travis-ci.org/xoebus/go-tracker"]
+image:https://coveralls.io/repos/xoebus/go-tracker/badge.png["Coverage Status", link="https://coveralls.io/r/xoebus/go-tracker"]
+
+A Pivotal Tracker API client written in Go

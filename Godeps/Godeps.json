@@ -1,0 +1,42 @@
+{
+	"ImportPath": "github.com/vito/tracksuit",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v74",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/google/go-github/github",
+			"Rev": "b8b4ac742977310ff6e75140a403a38dab109977"
+		},
+		{
+			"ImportPath": "github.com/google/go-querystring/query",
+			"Rev": "2a60fc2ba6c19de80291203597d752e9ba58e4c0"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/errwrap",
+			"Rev": "7554cd9344cec97297fa6649b055a8c98c2a1e55"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-multierror",
+			"Rev": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
+		},
+		{
+			"ImportPath": "github.com/xoebus/go-tracker",
+			"Rev": "64444f53f74ecbe2ae9c678f26a2f1522fe701d0"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "1961d9def2b2d7a28d7958926d2457d05a178ecd"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2",
+			"Rev": "8a57ed94ffd43444c0879fe75701732a38afc985"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2/internal",
+			"Rev": "8a57ed94ffd43444c0879fe75701732a38afc985"
+		}
+	]
+}
