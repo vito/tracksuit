@@ -5,7 +5,7 @@ set -e -x
 export GOPATH=$PWD/gopath
 export PATH=$GOPATH/bin:$PATH
 
-go install github.com/vito/tracksuit
+go install github.com/billimek/tracksuit
 
 tracksuit \
   --github-token "$GITHUB_TOKEN" \
