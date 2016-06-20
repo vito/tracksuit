@@ -51,6 +51,18 @@ func (set StorySet) HelpWanted() bool {
 	return false
 }
 
+func (set StorySet) HasPR() bool {
+	for _, story := range set {
+		for _, label := range story.Labels {
+			if label.Name == "has-pr" {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func (set StorySet) LastAccepted() time.Time {
 	lastAccepted := time.Unix(0, 0)
 

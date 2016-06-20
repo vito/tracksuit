@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -179,6 +180,8 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 	issue github.Issue,
 	label string,
 ) error {
+	log.Printf("syncing %s: %s\n", label, *issue.Title)
+
 	var allStories StorySet
 
 	query := tracker.StoriesQuery{
@@ -229,11 +232,21 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 		allStories = append(allStories, createdStory)
 	}
 
+	if issue.PullRequestLinks != nil && !allStories.HasPR() {
+		if err := syncer.setHasPR(allStories); err != nil {
+			return fmt.Errorf("failed to set has-pr label for stories: %s", err)
+		}
+	} else if issue.PullRequestLinks == nil && allStories.HasPR() {
+		if err := syncer.unsetHasPR(allStories); err != nil {
+			return fmt.Errorf("failed to remove has-pr label for stories: %s", err)
+		}
+	}
+
 	if err := syncer.ensureCommentWithStories(repo, issue, allStories); err != nil {
 		return fmt.Errorf("failed to upsert comment for stories: %s", err)
 	}
 
-	if err := syncer.syncLabels(repo, issue, allStories.IssueLabels()); err != nil {
+	if err := syncer.syncIssueLabels(repo, issue, allStories.IssueLabels()); err != nil {
 		return fmt.Errorf("failed to sync story labels: %s", err)
 	}
 
@@ -243,6 +256,44 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 		err := syncer.closeIssue(repo, issue, allStories)
 		if err != nil {
 			return fmt.Errorf("failed to close issue: %s", err)
+		}
+	}
+
+	return nil
+}
+
+func (syncer *Syncer) setHasPR(stories StorySet) error {
+	for _, story := range stories {
+		if (StorySet{story}).HasPR() {
+			continue
+		}
+
+		log.Printf("adding has-pr label to #%d\n", story.ID)
+
+		_, err := syncer.ProjectClient.AddStoryLabel(story.ID, "has-pr")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (syncer *Syncer) unsetHasPR(stories StorySet) error {
+	for _, story := range stories {
+		if !(StorySet{story}).HasPR() {
+			continue
+		}
+
+		for _, label := range story.Labels {
+			if label.Name == "has-pr" {
+				log.Printf("removing has-pr label from #%d\n", story.ID)
+
+				err := syncer.ProjectClient.RemoveStoryLabel(story.ID, label.ID)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
@@ -310,7 +361,7 @@ func (syncer *Syncer) ensureCommentWithStories(
 	return nil
 }
 
-func (syncer *Syncer) syncLabels(
+func (syncer *Syncer) syncIssueLabels(
 	repo github.Repository,
 	issue github.Issue,
 	labels []string,
@@ -436,6 +487,8 @@ func choreForNewIssue(label string, issue github.Issue) tracker.Story {
 	}
 
 	if issue.PullRequestLinks != nil {
+		prJSON, _ := json.Marshal(issue.PullRequestLinks)
+		log.Printf("  has pull request: %s\n", string(prJSON))
 		labels = append(labels, tracker.Label{Name: "has-pr"})
 	}
 

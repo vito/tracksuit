@@ -1,0 +1,30 @@
+language: go
+
+go:
+- 1.4
+
+sudo: false
+
+env:
+  global:
+    secure: FMkymWkcLI8WQ1CdpzCAahENhqAZK7QFCXONYWbdPVYdnoGsx3sFt1g8wBld1J6m4z9GfURuquPVYe9xERpP1p85Q5ocwiElasYHVI1msrt27Wdt9cT9qjseaYPfWmcUKKZhDxCkdoT0wRShZHHnkFjYYmagx/JA2IoqcQQzdRc=
+
+before_install:
+- export PATH=$HOME/gopath/bin:$PATH
+- export PATH=$PWD/Godeps/_workspace/bin:$PATH
+- export GOPATH=$PWD/Godeps/_workspace:$GOPATH
+
+install:
+- go get github.com/mattn/goveralls
+- go get golang.org/x/tools/cmd/vet
+- go get golang.org/x/tools/cmd/cover
+- go get github.com/onsi/ginkgo/ginkgo
+- go get github.com/onsi/gomega
+- go get github.com/golang/protobuf/proto
+
+script: ./scripts/ci
+
+after_success:
+- 'echo "mode: set" > all.coverprofile'
+- 'find . -name "*.coverprofile" -exec grep -v mode: {} >> all.coverprofile \;'
+- goveralls -coverprofile=all.coverprofile -repotoken=$COVERALLS_TOKEN
