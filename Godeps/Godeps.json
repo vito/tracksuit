@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/vito/tracksuit",
+	"ImportPath": "github.com/billimek/tracksuit",
 	"GoVersion": "go1.6",
 	"GodepVersion": "v74",
 	"Packages": [
