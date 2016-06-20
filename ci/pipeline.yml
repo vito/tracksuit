@@ -3,7 +3,7 @@ jobs:
   serial: true
   plan:
   - get: periodic-tracksuit
-    trigger: false
+    trigger: true
   - get: tracksuit
   - task: tracksuit
     file: tracksuit/run.yml
