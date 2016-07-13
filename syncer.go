@@ -391,7 +391,7 @@ func (syncer *Syncer) syncIssueLabels(
 			}
 		}
 
-		if !stillHasLabel {
+		if !stillHasLabel && stockLabel != IssueLabelHelpWanted {
 			labelsToRemove = append(labelsToRemove, stockLabel)
 		}
 	}
