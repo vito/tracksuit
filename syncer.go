@@ -203,7 +203,7 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 	}
 
 	if issueHasHelpWantedLabel(issue) && allStories.Untriaged() {
-		log.Printf("issue %s is marked 'help wanted'; removing untriaged stories (%d)\n", label, len(allStories))
+		log.Printf("issue has '%s' label; removing %d untriaged stories\n", IssueLabelHelpWanted, len(allStories))
 
 		for _, story := range allStories {
 			err := syncer.ProjectClient.DeleteStory(story.ID)
