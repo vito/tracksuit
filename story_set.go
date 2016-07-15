@@ -12,7 +12,6 @@ const IssueLabelScheduled = "scheduled"
 const IssueLabelInFlight = "in-flight"
 const IssueLabelBug = "bug"
 const IssueLabelEnhancement = "enhancement"
-const IssueLabelHelpWanted = "help wanted"
 
 var stockLabels = map[string]string{
 	IssueLabelUnscheduled: "e4eff7",
@@ -22,7 +21,6 @@ var stockLabels = map[string]string{
 	// respect original github colors
 	IssueLabelBug:         "",
 	IssueLabelEnhancement: "",
-	IssueLabelHelpWanted:  "",
 }
 
 type StorySet []tracker.Story
@@ -47,18 +45,6 @@ func (set StorySet) Untriaged() bool {
 	}
 
 	return true
-}
-
-func (set StorySet) HelpWanted() bool {
-	for _, story := range set {
-		for _, label := range story.Labels {
-			if label.Name == "help-wanted" {
-				return true
-			}
-		}
-	}
-
-	return false
 }
 
 func (set StorySet) HasPR() bool {
@@ -102,10 +88,6 @@ func (set StorySet) IssueLabels() []string {
 		labels = append(labels, IssueLabelEnhancement)
 	} else if hasBugs {
 		labels = append(labels, IssueLabelBug)
-	}
-
-	if set.HelpWanted() {
-		labels = append(labels, IssueLabelHelpWanted)
 	}
 
 	if set.AllAccepted() {
