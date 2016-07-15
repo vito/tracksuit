@@ -202,6 +202,19 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 		query.Offset = len(allStories)
 	}
 
+	if issueHasHelpWantedLabel(issue) && allStories.Untriaged() {
+		log.Printf("issue %s is marked 'help wanted'; removing untriaged stories (%d)\n", label, len(allStories))
+
+		for _, story := range allStories {
+			err := syncer.ProjectClient.DeleteStory(story.ID)
+			if err != nil {
+				return fmt.Errorf("failed to remove story %d: %s", story.ID, err)
+			}
+		}
+
+		return nil
+	}
+
 	if len(allStories) == 0 {
 		// no stories for the issue yet; create an initial one
 
@@ -391,7 +404,7 @@ func (syncer *Syncer) syncIssueLabels(
 			}
 		}
 
-		if !stillHasLabel && stockLabel != IssueLabelHelpWanted {
+		if !stillHasLabel {
 			labelsToRemove = append(labelsToRemove, stockLabel)
 		}
 	}
@@ -531,4 +544,14 @@ func choreForReopenedIssue(label string, issue github.Issue) tracker.Story {
 		State:       "unscheduled",
 		Labels:      labels,
 	}
+}
+
+func issueHasHelpWantedLabel(issue github.Issue) bool {
+	for _, label := range issue.Labels {
+		if *label.Name == IssueLabelHelpWanted {
+			return true
+		}
+	}
+
+	return false
 }

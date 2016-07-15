@@ -39,6 +39,16 @@ func (set StorySet) AllAccepted() bool {
 	return allAccepted
 }
 
+func (set StorySet) Untriaged() bool {
+	for _, story := range set {
+		if story.Type != tracker.StoryTypeChore {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (set StorySet) HelpWanted() bool {
 	for _, story := range set {
 		for _, label := range story.Labels {
