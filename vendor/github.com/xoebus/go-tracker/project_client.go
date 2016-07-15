@@ -44,16 +44,16 @@ func (p ProjectClient) StoryActivity(storyId int, query ActivityQuery) (activiti
 	return activities, err
 }
 
-func (p ProjectClient) DeliverStoryWithComment(storyId int, comment string) error {
-	err := p.DeliverStory(storyId)
+func (p ProjectClient) DeliverStoryWithComment(storyId int, comment string) (Story, error) {
+	story, err := p.DeliverStory(storyId)
 	if err != nil {
-		return err
+		return Story{}, err
 	}
 
 	url := fmt.Sprintf("/stories/%d/comments", storyId)
 	request, err := p.createRequest("POST", url)
 	if err != nil {
-		return err
+		return Story{}, err
 	}
 
 	buffer := &bytes.Buffer{}
@@ -64,20 +64,25 @@ func (p ProjectClient) DeliverStoryWithComment(storyId int, comment string) erro
 	p.addJSONBodyReader(request, buffer)
 
 	_, err = p.conn.Do(request, nil)
-	return err
+	if err != nil {
+		return Story{}, err
+	}
+
+	return story, nil
 }
 
-func (p ProjectClient) DeliverStory(storyId int) error {
+func (p ProjectClient) DeliverStory(storyId int) (Story, error) {
 	url := fmt.Sprintf("/stories/%d", storyId)
 	request, err := p.createRequest("PUT", url)
 	if err != nil {
-		return err
+		return Story{}, err
 	}
 
 	p.addJSONBody(request, `{"current_state":"delivered"}`)
 
-	_, err = p.conn.Do(request, nil)
-	return err
+	var updatedStory Story
+	_, err = p.conn.Do(request, &updatedStory)
+	return updatedStory, err
 }
 
 func (p ProjectClient) CreateStory(story Story) (Story, error) {
@@ -135,6 +140,20 @@ func (p ProjectClient) RemoveStoryLabel(storyId int, labelId int) error {
 
 	_, err = p.conn.Do(request, nil)
 	return err
+}
+
+func (p ProjectClient) SetStoryType(storyId int, storyType StoryType) (Story, error) {
+	url := fmt.Sprintf("/stories/%d", storyId)
+	request, err := p.createRequest("PUT", url)
+	if err != nil {
+		return Story{}, err
+	}
+
+	p.addJSONBody(request, fmt.Sprintf(`{"story_type":%q}`, storyType))
+
+	var updatedStory Story
+	_, err = p.conn.Do(request, &updatedStory)
+	return updatedStory, err
 }
 
 func (p ProjectClient) createRequest(method string, path string) (*http.Request, error) {

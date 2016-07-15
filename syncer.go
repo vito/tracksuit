@@ -202,23 +202,6 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 		query.Offset = len(allStories)
 	}
 
-	if issueHasHelpWantedLabel(issue) && allStories.Untriaged() {
-		log.Printf("issue has '%s' label; removing %d untriaged stories\n", IssueLabelHelpWanted, len(allStories))
-
-		for _, story := range allStories {
-			err := syncer.ProjectClient.DeleteStory(story.ID)
-			if err != nil {
-				return fmt.Errorf("failed to remove story %d: %s", story.ID, err)
-			}
-
-			if err := syncer.syncIssueLabels(repo, issue, nonTrackerLabels(issue.Labels)); err != nil {
-				return fmt.Errorf("failed to sync story labels: %s", err)
-			}
-		}
-
-		return nil
-	}
-
 	if len(allStories) == 0 {
 		// no stories for the issue yet; create an initial one
 
@@ -246,6 +229,17 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 		log.Println("created chore for reopening of", label, "at", createdStory.URL)
 
 		allStories = append(allStories, createdStory)
+	}
+
+	if len(allStories) == 1 && allStories.Untriaged() {
+		story := allStories[0]
+
+		syncedStory, err := syncer.syncStoryTypeFromIssue(story, issue)
+		if err != nil {
+			return fmt.Errorf("failed to sync story type for %d: %s", story.ID, err)
+		}
+
+		allStories[0] = syncedStory
 	}
 
 	if issue.PullRequestLinks != nil && !allStories.HasPR() {
@@ -493,6 +487,18 @@ func (syncer *Syncer) currentUser() (*github.User, error) {
 	return syncer.cachedUser, nil
 }
 
+func (syncer *Syncer) syncStoryTypeFromIssue(story tracker.Story, issue *github.Issue) (tracker.Story, error) {
+	storyType := issueStoryType(issue)
+
+	if story.Type == storyType {
+		return story, nil
+	}
+
+	log.Printf("updating story type to '%s'...\n", storyType)
+
+	return syncer.ProjectClient.SetStoryType(story.ID, storyType)
+}
+
 func trackerLabelForIssue(repo *github.Repository, issue *github.Issue) string {
 	return fmt.Sprintf("%s/%s#%d", *repo.Owner.Login, *repo.Name, *issue.Number)
 }
@@ -550,25 +556,24 @@ func choreForReopenedIssue(label string, issue *github.Issue) tracker.Story {
 	}
 }
 
-func issueHasHelpWantedLabel(issue *github.Issue) bool {
+func issueStoryType(issue *github.Issue) tracker.StoryType {
+	if issueHasLabel(issue, IssueLabelEnhancement) {
+		return tracker.StoryTypeFeature
+	}
+
+	if issueHasLabel(issue, IssueLabelBug) {
+		return tracker.StoryTypeBug
+	}
+
+	return tracker.StoryTypeChore
+}
+
+func issueHasLabel(issue *github.Issue, needle string) bool {
 	for _, label := range issue.Labels {
-		if *label.Name == IssueLabelHelpWanted {
+		if *label.Name == needle {
 			return true
 		}
 	}
 
 	return false
-}
-
-func nonTrackerLabels(labels []github.Label) []string {
-	filteredLabels := []string{}
-	for _, label := range labels {
-		switch *label.Name {
-		case IssueLabelUnscheduled, IssueLabelScheduled, IssueLabelInFlight:
-		default:
-			filteredLabels = append(filteredLabels, *label.Name)
-		}
-	}
-
-	return filteredLabels
 }
