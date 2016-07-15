@@ -210,6 +210,10 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 			if err != nil {
 				return fmt.Errorf("failed to remove story %d: %s", story.ID, err)
 			}
+
+			if err := syncer.syncIssueLabels(repo, issue, nonTrackerLabels(issue.Labels)); err != nil {
+				return fmt.Errorf("failed to sync story labels: %s", err)
+			}
 		}
 
 		return nil
@@ -554,4 +558,17 @@ func issueHasHelpWantedLabel(issue github.Issue) bool {
 	}
 
 	return false
+}
+
+func nonTrackerLabels(labels []github.Label) []string {
+	filteredLabels := []string{}
+	for _, label := range labels {
+		switch *label.Name {
+		case IssueLabelUnscheduled, IssueLabelScheduled, IssueLabelInFlight:
+		default:
+			filteredLabels = append(filteredLabels, *label.Name)
+		}
+	}
+
+	return filteredLabels
 }
