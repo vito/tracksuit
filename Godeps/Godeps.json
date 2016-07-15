@@ -8,11 +8,11 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/google/go-github/github",
-			"Rev": "b8b4ac742977310ff6e75140a403a38dab109977"
+			"Rev": "f6f75a742a52df1fd2f2ba9346dc59a864a9166d"
 		},
 		{
 			"ImportPath": "github.com/google/go-querystring/query",
-			"Rev": "2a60fc2ba6c19de80291203597d752e9ba58e4c0"
+			"Rev": "9235644dd9e52eeae6fa48efd539fdc351a0af53"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/errwrap",
@@ -28,15 +28,15 @@
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
-			"Rev": "1961d9def2b2d7a28d7958926d2457d05a178ecd"
+			"Rev": "f841c39de738b1d0df95b5a7187744f0e03d8112"
 		},
 		{
 			"ImportPath": "golang.org/x/oauth2",
-			"Rev": "8a57ed94ffd43444c0879fe75701732a38afc985"
+			"Rev": "7357e96168422ba1e6e7f21075713b72d58764e7"
 		},
 		{
 			"ImportPath": "golang.org/x/oauth2/internal",
-			"Rev": "8a57ed94ffd43444c0879fe75701732a38afc985"
+			"Rev": "7357e96168422ba1e6e7f21075713b72d58764e7"
 		}
 	]
 }

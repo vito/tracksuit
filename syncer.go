@@ -81,7 +81,7 @@ func (syncer *Syncer) SyncIssuesAndStories() error {
 	return multiErr.ErrorOrNil()
 }
 
-func (syncer *Syncer) processRepoIssues(repo github.Repository) error {
+func (syncer *Syncer) processRepoIssues(repo *github.Repository) error {
 	issues, err := syncer.allIssues(repo)
 	if err != nil {
 		return fmt.Errorf("failed to fetch issues for %s: %s", *repo.Name, err)
@@ -104,7 +104,7 @@ func (syncer *Syncer) processRepoIssues(repo github.Repository) error {
 	return multiErr.ErrorOrNil()
 }
 
-func (syncer *Syncer) syncRepoStockLabels(repo github.Repository) error {
+func (syncer *Syncer) syncRepoStockLabels(repo *github.Repository) error {
 	logName := *repo.Owner.Login + "/" + *repo.Name
 
 	existingLabels, _, err := syncer.GithubClient.Issues.ListLabels(
@@ -175,8 +175,8 @@ func (syncer *Syncer) syncRepoStockLabels(repo github.Repository) error {
 }
 
 func (syncer *Syncer) ensureStoryExistsForIssue(
-	repo github.Repository,
-	issue github.Issue,
+	repo *github.Repository,
+	issue *github.Issue,
 	label string,
 ) error {
 	log.Printf("syncing %s: %s\n", label, *issue.Title)
@@ -317,8 +317,8 @@ func (syncer *Syncer) unsetHasPR(stories StorySet) error {
 }
 
 func (syncer *Syncer) ensureCommentWithStories(
-	repo github.Repository,
-	issue github.Issue,
+	repo *github.Repository,
+	issue *github.Issue,
 	allStories []tracker.Story,
 ) error {
 	comments, err := syncer.allCommentsForIssue(repo, issue)
@@ -334,7 +334,7 @@ func (syncer *Syncer) ensureCommentWithStories(
 	var existingComment *github.IssueComment
 	for _, comment := range comments {
 		if *comment.User.ID == *currentUser.ID {
-			existingComment = &comment
+			existingComment = comment
 			break
 		}
 	}
@@ -378,8 +378,8 @@ func (syncer *Syncer) ensureCommentWithStories(
 }
 
 func (syncer *Syncer) syncIssueLabels(
-	repo github.Repository,
-	issue github.Issue,
+	repo *github.Repository,
+	issue *github.Issue,
 	labels []string,
 ) error {
 	existingLabels := map[string]bool{}
@@ -445,8 +445,8 @@ func (syncer *Syncer) syncIssueLabels(
 }
 
 func (syncer *Syncer) closeIssue(
-	repo github.Repository,
-	issue github.Issue,
+	repo *github.Repository,
+	issue *github.Issue,
 	stories StorySet,
 ) error {
 	buf := new(bytes.Buffer)
@@ -493,11 +493,11 @@ func (syncer *Syncer) currentUser() (*github.User, error) {
 	return syncer.cachedUser, nil
 }
 
-func trackerLabelForIssue(repo github.Repository, issue github.Issue) string {
+func trackerLabelForIssue(repo *github.Repository, issue *github.Issue) string {
 	return fmt.Sprintf("%s/%s#%d", *repo.Owner.Login, *repo.Name, *issue.Number)
 }
 
-func choreForNewIssue(label string, issue github.Issue) tracker.Story {
+func choreForNewIssue(label string, issue *github.Issue) tracker.Story {
 	labels := []tracker.Label{
 		{Name: label},
 	}
@@ -527,7 +527,7 @@ func choreForNewIssue(label string, issue github.Issue) tracker.Story {
 	}
 }
 
-func choreForReopenedIssue(label string, issue github.Issue) tracker.Story {
+func choreForReopenedIssue(label string, issue *github.Issue) tracker.Story {
 	labels := []tracker.Label{
 		{Name: label},
 	}
@@ -550,7 +550,7 @@ func choreForReopenedIssue(label string, issue github.Issue) tracker.Story {
 	}
 }
 
-func issueHasHelpWantedLabel(issue github.Issue) bool {
+func issueHasHelpWantedLabel(issue *github.Issue) bool {
 	for _, label := range issue.Labels {
 		if *label.Name == IssueLabelHelpWanted {
 			return true
