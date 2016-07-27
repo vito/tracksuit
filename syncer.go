@@ -82,7 +82,7 @@ func (syncer *Syncer) SyncIssuesAndStories() error {
 	return multiErr.ErrorOrNil()
 }
 
-func (syncer *Syncer) processRepoIssues(repo github.Repository) error {
+func (syncer *Syncer) processRepoIssues(repo *github.Repository) error {
 	issues, err := syncer.allIssues(repo)
 	if err != nil {
 		return fmt.Errorf("failed to fetch issues for %s: %s", *repo.Name, err)
@@ -105,7 +105,7 @@ func (syncer *Syncer) processRepoIssues(repo github.Repository) error {
 	return multiErr.ErrorOrNil()
 }
 
-func (syncer *Syncer) syncRepoStockLabels(repo github.Repository) error {
+func (syncer *Syncer) syncRepoStockLabels(repo *github.Repository) error {
 	logName := *repo.Owner.Login + "/" + *repo.Name
 
 	existingLabels, _, err := syncer.GithubClient.Issues.ListLabels(
@@ -176,8 +176,8 @@ func (syncer *Syncer) syncRepoStockLabels(repo github.Repository) error {
 }
 
 func (syncer *Syncer) ensureStoryExistsForIssue(
-	repo github.Repository,
-	issue github.Issue,
+	repo *github.Repository,
+	issue *github.Issue,
 	label string,
 ) error {
 	log.Printf("syncing %s: %s\n", label, *issue.Title)
@@ -230,6 +230,17 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 		log.Println("created chore for reopening of", label, "at", createdStory.URL)
 
 		allStories = append(allStories, createdStory)
+	}
+
+	if len(allStories) == 1 && allStories.Untriaged() {
+		story := allStories[0]
+
+		syncedStory, err := syncer.syncStoryTypeFromIssue(story, issue)
+		if err != nil {
+			return fmt.Errorf("failed to sync story type for %d: %s", story.ID, err)
+		}
+
+		allStories[0] = syncedStory
 	}
 
 	if issue.PullRequestLinks != nil && !allStories.HasPR() {
@@ -301,8 +312,8 @@ func (syncer *Syncer) unsetHasPR(stories StorySet) error {
 }
 
 func (syncer *Syncer) ensureCommentWithStories(
-	repo github.Repository,
-	issue github.Issue,
+	repo *github.Repository,
+	issue *github.Issue,
 	allStories []tracker.Story,
 ) error {
 	comments, err := syncer.allCommentsForIssue(repo, issue)
@@ -318,7 +329,7 @@ func (syncer *Syncer) ensureCommentWithStories(
 	var existingComment *github.IssueComment
 	for _, comment := range comments {
 		if *comment.User.ID == *currentUser.ID {
-			existingComment = &comment
+			existingComment = comment
 			break
 		}
 	}
@@ -362,8 +373,8 @@ func (syncer *Syncer) ensureCommentWithStories(
 }
 
 func (syncer *Syncer) syncIssueLabels(
-	repo github.Repository,
-	issue github.Issue,
+	repo *github.Repository,
+	issue *github.Issue,
 	labels []string,
 ) error {
 	existingLabels := map[string]bool{}
@@ -429,8 +440,8 @@ func (syncer *Syncer) syncIssueLabels(
 }
 
 func (syncer *Syncer) closeIssue(
-	repo github.Repository,
-	issue github.Issue,
+	repo *github.Repository,
+	issue *github.Issue,
 	stories StorySet,
 ) error {
 	buf := new(bytes.Buffer)
@@ -477,11 +488,23 @@ func (syncer *Syncer) currentUser() (*github.User, error) {
 	return syncer.cachedUser, nil
 }
 
-func trackerLabelForIssue(repo github.Repository, issue github.Issue) string {
+func (syncer *Syncer) syncStoryTypeFromIssue(story tracker.Story, issue *github.Issue) (tracker.Story, error) {
+	storyType := issueStoryType(issue)
+
+	if story.Type == storyType {
+		return story, nil
+	}
+
+	log.Printf("updating story type to '%s'...\n", storyType)
+
+	return syncer.ProjectClient.SetStoryType(story.ID, storyType)
+}
+
+func trackerLabelForIssue(repo *github.Repository, issue *github.Issue) string {
 	return fmt.Sprintf("%s/%s#%d", *repo.Owner.Login, *repo.Name, *issue.Number)
 }
 
-func choreForNewIssue(label string, issue github.Issue) tracker.Story {
+func choreForNewIssue(label string, issue *github.Issue) tracker.Story {
 	labels := []tracker.Label{
 		{Name: label},
 	}
@@ -511,7 +534,7 @@ func choreForNewIssue(label string, issue github.Issue) tracker.Story {
 	}
 }
 
-func choreForReopenedIssue(label string, issue github.Issue) tracker.Story {
+func choreForReopenedIssue(label string, issue *github.Issue) tracker.Story {
 	labels := []tracker.Label{
 		{Name: label},
 	}
@@ -532,4 +555,26 @@ func choreForReopenedIssue(label string, issue github.Issue) tracker.Story {
 		State:       "unscheduled",
 		Labels:      labels,
 	}
+}
+
+func issueStoryType(issue *github.Issue) tracker.StoryType {
+	if issueHasLabel(issue, IssueLabelEnhancement) {
+		return tracker.StoryTypeFeature
+	}
+
+	if issueHasLabel(issue, IssueLabelBug) {
+		return tracker.StoryTypeBug
+	}
+
+	return tracker.StoryTypeChore
+}
+
+func issueHasLabel(issue *github.Issue, needle string) bool {
+	for _, label := range issue.Labels {
+		if *label.Name == needle {
+			return true
+		}
+	}
+
+	return false
 }
