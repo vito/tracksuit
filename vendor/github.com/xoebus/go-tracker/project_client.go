@@ -162,7 +162,7 @@ func (p ProjectClient) createRequest(method string, path string) (*http.Request,
 }
 
 func (p ProjectClient) addJSONBodyReader(request *http.Request, body io.Reader) {
-	request.Header.Add("Content-Type", "application/json")
+	request.Header.Add("Content-Type", "application/json; charset=utf-8")
 	request.Body = ioutil.NopCloser(body)
 }
 
