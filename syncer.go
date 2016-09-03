@@ -71,6 +71,8 @@ func (syncer *Syncer) SyncIssuesAndStories() error {
 		}
 
 		if err := syncer.processRepoIssues(repo); err != nil {
+			log.Println("syncing failed:", err.Error())
+
 			multiErr = multierror.Append(
 				multiErr,
 				fmt.Errorf("errors when processing %s: %s", repoName, err),
