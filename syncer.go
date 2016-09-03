@@ -517,13 +517,12 @@ func choreForNewIssue(label string, issue *github.Issue) tracker.Story {
 	}
 
 	description := fmt.Sprintf(
-		"[@%s](%s) opened [%s](%s) on %s:\n\n%s",
+		"[@%s](%s) opened [%s](%s) on %s",
 		*issue.User.Login,
 		*issue.User.HTMLURL,
 		label,
 		*issue.HTMLURL,
 		issue.CreatedAt.Format("January 2"),
-		*issue.Body,
 	)
 
 	return tracker.Story{
