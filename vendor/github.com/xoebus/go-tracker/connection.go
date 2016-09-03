@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 )
@@ -94,13 +95,21 @@ func (c connection) sendRequest(request *http.Request) (*http.Response, error) {
 	}
 
 	if response.StatusCode == http.StatusUnauthorized {
+		defer response.Body.Close()
 		return nil, errors.New("invalid token")
 	}
 
 	if response.StatusCode != http.StatusOK &&
 		response.StatusCode != http.StatusCreated &&
 		response.StatusCode != http.StatusNoContent {
-		return nil, fmt.Errorf("request failed (%d)", response.StatusCode)
+		defer response.Body.Close()
+
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read response body after request failed (%d): %s", response.StatusCode, err)
+		}
+
+		return nil, fmt.Errorf("request failed (%d): %s", response.StatusCode, body)
 	}
 
 	return response, nil
