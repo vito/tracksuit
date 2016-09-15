@@ -11,7 +11,7 @@ type LabelGCer struct {
 }
 
 func (gcer LabelGCer) GC() {
-	labels, err := gcer.allLabels()
+	labels, err := gcer.ProjectClient.Labels()
 	if err != nil {
 		log.Println("failed to fetch errors:", err)
 		return
@@ -29,27 +29,4 @@ func (gcer LabelGCer) GC() {
 		// 	log.Println("failed to delete:", err)
 		// }
 	}
-}
-
-func (gcer LabelGCer) allLabels() ([]tracker.Label, error) {
-	query := tracker.LabelsQuery{}
-
-	allLabels := []tracker.Label{}
-
-	for {
-		labels, _, err := gcer.ProjectClient.Labels(query)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(labels) == 0 {
-			break
-		}
-
-		allLabels = append(allLabels, labels...)
-
-		query.Offset = len(allLabels)
-	}
-
-	return allLabels, nil
 }

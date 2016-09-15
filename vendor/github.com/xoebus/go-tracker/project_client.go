@@ -32,21 +32,19 @@ func (p ProjectClient) Stories(query StoriesQuery) ([]Story, Pagination, error) 
 	return stories, pagination, err
 }
 
-func (p ProjectClient) Labels(query LabelsQuery) ([]Label, Pagination, error) {
-	params := query.Query().Encode()
-
-	request, err := p.createRequest("GET", "/labels?"+params)
+func (p ProjectClient) Labels() ([]Label, error) {
+	request, err := p.createRequest("GET", "/labels")
 	if err != nil {
-		return nil, Pagination{}, err
+		return nil, err
 	}
 
 	var labels []Label
-	pagination, err := p.conn.Do(request, &labels)
+	_, err = p.conn.Do(request, &labels)
 	if err != nil {
-		return nil, Pagination{}, err
+		return nil, err
 	}
 
-	return labels, pagination, err
+	return labels, err
 }
 
 func (p ProjectClient) StoryActivity(storyId int, query ActivityQuery) (activities []Activity, err error) {

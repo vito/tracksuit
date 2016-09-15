@@ -72,22 +72,3 @@ func (query ActivityQuery) Query() url.Values {
 
 	return params
 }
-
-type LabelsQuery struct {
-	Limit  int
-	Offset int
-}
-
-func (query LabelsQuery) Query() url.Values {
-	params := url.Values{}
-
-	if query.Limit != 0 {
-		params.Set("limit", fmt.Sprintf("%d", query.Limit))
-	}
-
-	if query.Offset != 0 {
-		params.Set("offset", fmt.Sprintf("%d", query.Offset))
-	}
-
-	return params
-}
