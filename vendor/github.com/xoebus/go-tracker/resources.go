@@ -42,13 +42,13 @@ type Label struct {
 
 	Name string `json:"name"`
 
-	Counts StoryCounts `json:"counts"`
+	Counts *StoryCounts `json:"counts"`
 }
 
 type StoryCounts struct {
-	NumberOfZeroPointStoriesByState CountsByStoryState `json:"number_of_zero_point_stories_by_state"`
-	SumOfStoryEstimatesByState      CountsByStoryState `json:"sum_of_story_estimates_by_state"`
-	NumberOfStoriesByState          CountsByStoryState `json:"number_of_stories_by_state"`
+	NumberOfZeroPointStoriesByState *CountsByStoryState `json:"number_of_zero_point_stories_by_state"`
+	SumOfStoryEstimatesByState      *CountsByStoryState `json:"sum_of_story_estimates_by_state"`
+	NumberOfStoriesByState          *CountsByStoryState `json:"number_of_stories_by_state"`
 }
 
 type CountsByStoryState struct {
