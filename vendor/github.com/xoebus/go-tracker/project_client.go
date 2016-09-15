@@ -33,7 +33,7 @@ func (p ProjectClient) Stories(query StoriesQuery) ([]Story, Pagination, error) 
 }
 
 func (p ProjectClient) Labels() ([]Label, error) {
-	request, err := p.createRequest("GET", "/labels")
+	request, err := p.createRequest("GET", "/labels?fields=id%2Cproject_id%2Cname%2Ccounts")
 	if err != nil {
 		return nil, err
 	}
