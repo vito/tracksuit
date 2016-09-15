@@ -23,10 +23,10 @@ func (gcer LabelGCer) GC() {
 		}
 
 		log.Println("deleting label:", label.Name)
-		log.Println("but not really")
-		// err := gcer.ProjectClient.DeleteLabel(label.ID)
-		// if err != nil {
-		// 	log.Println("failed to delete:", err)
-		// }
+
+		err := gcer.ProjectClient.DeleteLabel(label.ID)
+		if err != nil {
+			log.Println("failed to delete:", err)
+		}
 	}
 }
