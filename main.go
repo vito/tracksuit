@@ -35,6 +35,12 @@ var organizationName = flag.String(
 	"Github organization name",
 )
 
+var gcLabels = flag.Bool(
+	"gc-labels",
+	false,
+	"Garbage-collect unused Tracker labels",
+)
+
 var repositories = NewStringSet()
 
 func required(thing interface{}, flag string) {
@@ -83,4 +89,14 @@ func main() {
 	}
 
 	log.Println("synced; remaining requests:", syncer.GithubClient.Rate().Remaining)
+
+	if *gcLabels {
+		log.Println("gcing labels")
+
+		gcer := &LabelGCer{
+			ProjectClient: projectClient,
+		}
+
+		gcer.GC()
+	}
 }

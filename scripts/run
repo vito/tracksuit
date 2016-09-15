@@ -12,4 +12,5 @@ tracksuit \
   --tracker-token "$TRACKER_TOKEN" \
   --project-id "$PROJECT_ID" \
   --organization "$ORGANIZATION" \
-  --repositories "$REPOSITORIES"
+  --repositories "$REPOSITORIES" \
+  --gc-labels="$GC_LABELS"

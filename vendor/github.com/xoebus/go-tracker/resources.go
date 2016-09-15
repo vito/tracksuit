@@ -41,6 +41,36 @@ type Label struct {
 	ProjectID int `json:"project_id,omitempty"`
 
 	Name string `json:"name"`
+
+	Counts StoryCounts `json:"counts"`
+}
+
+type StoryCounts struct {
+	NumberOfZeroPointStoriesByState CountsByStoryState `json:"number_of_zero_point_stories_by_state"`
+	SumOfStoryEstimatesByState      CountsByStoryState `json:"sum_of_story_estimates_by_state"`
+	NumberOfStoriesByState          CountsByStoryState `json:"number_of_stories_by_state"`
+}
+
+type CountsByStoryState struct {
+	Delivered   int `json:"delivered"`
+	Unscheduled int `json:"unscheduled"`
+	Rejected    int `json:"rejected"`
+	Finished    int `json:"finished"`
+	Unstarted   int `json:"unstarted"`
+	Planned     int `json:"planned"`
+	Accepted    int `json:"accepted"`
+	Started     int `json:"started"`
+}
+
+func (counts CountsByStoryState) Total() int {
+	return counts.Delivered +
+		counts.Unscheduled +
+		counts.Rejected +
+		counts.Finished +
+		counts.Unstarted +
+		counts.Planned +
+		counts.Accepted +
+		counts.Started
 }
 
 type StoryType string

@@ -11,6 +11,7 @@ params:
   PROJECT_ID:
   ORGANIZATION:
   REPOSITORIES:
+  GC_LABELS: "false"
 
 inputs:
 - name: tracksuit
