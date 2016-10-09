@@ -37,6 +37,16 @@ func (set StorySet) AllAccepted() bool {
 	return allAccepted
 }
 
+func (set StorySet) Unscheduled() bool {
+	for _, story := range set {
+		if story.Type != tracker.StoryStateUnscheduled {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (set StorySet) Untriaged() bool {
 	for _, story := range set {
 		if story.Type != tracker.StoryTypeChore {

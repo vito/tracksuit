@@ -233,10 +233,10 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 		allStories = append(allStories, createdStory)
 	}
 
-	if len(allStories) == 1 && allStories.Untriaged() {
+	if len(allStories) == 1 && (allStories.Untriaged() || allStories.Unscheduled()) {
 		story := allStories[0]
 
-		syncedStory, err := syncer.syncStoryTypeFromIssue(story, issue)
+		syncedStory, err := syncer.syncStoryFromIssue(story, issue)
 		if err != nil {
 			return fmt.Errorf("failed to sync story type for %d: %s", story.ID, err)
 		}
@@ -489,16 +489,37 @@ func (syncer *Syncer) currentUser() (*github.User, error) {
 	return syncer.cachedUser, nil
 }
 
-func (syncer *Syncer) syncStoryTypeFromIssue(story tracker.Story, issue *github.Issue) (tracker.Story, error) {
+func (syncer *Syncer) syncStoryFromIssue(story tracker.Story, issue *github.Issue) (tracker.Story, error) {
 	storyType := issueStoryType(issue)
 
-	if story.Type == storyType {
-		return story, nil
+	var err error
+
+	if story.State == tracker.StoryStateStarted && story.Type == tracker.StoryTypeChore {
+		log.Println("moving story to icebox...")
+
+		story, err = syncer.ProjectClient.UnscheduleStory(story.ID)
+		if err != nil {
+			return tracker.Story{}, err
+		}
 	}
 
-	log.Printf("updating story type to '%s'...\n", storyType)
+	if story.Type != storyType {
+		log.Printf("updating story type to '%s'...\n", storyType)
+		story, err = syncer.ProjectClient.SetStoryType(story.ID, storyType)
+		if err != nil {
+			return tracker.Story{}, err
+		}
+	}
 
-	return syncer.ProjectClient.SetStoryType(story.ID, storyType)
+	if story.Name != *issue.Title {
+		log.Println("syncing story name...")
+		story, err = syncer.ProjectClient.UnscheduleStory(story.ID)
+		if err != nil {
+			return tracker.Story{}, err
+		}
+	}
+
+	return story, nil
 }
 
 func trackerLabelForIssue(repo *github.Repository, issue *github.Issue) string {
