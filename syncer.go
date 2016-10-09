@@ -513,7 +513,7 @@ func (syncer *Syncer) syncStoryFromIssue(story tracker.Story, issue *github.Issu
 
 	if story.Name != *issue.Title {
 		log.Println("syncing story name...")
-		story, err = syncer.ProjectClient.UnscheduleStory(story.ID)
+		story, err = syncer.ProjectClient.SetStoryName(story.ID, *issue.Title)
 		if err != nil {
 			return tracker.Story{}, err
 		}
