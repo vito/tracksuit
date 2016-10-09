@@ -494,7 +494,7 @@ func (syncer *Syncer) syncStoryFromIssue(story tracker.Story, issue *github.Issu
 
 	var err error
 
-	if story.State == tracker.StoryStateStarted && story.Type == tracker.StoryTypeChore {
+	if story.State == tracker.StoryStateStarted && story.Type == tracker.StoryTypeChore && storyType != tracker.StoryTypeChore {
 		log.Println("moving story to icebox...")
 
 		story, err = syncer.ProjectClient.UnscheduleStory(story.ID)
