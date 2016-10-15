@@ -12,14 +12,14 @@ const IssueLabelScheduled = "scheduled"
 const IssueLabelInFlight = "in-flight"
 const IssueLabelBug = "bug"
 const IssueLabelEnhancement = "enhancement"
-const IssueLabelProposal = "proposal"
+const IssueLabelDiscuss = "discuss"
 
 var stockLabels = map[string]string{
 	IssueLabelUnscheduled: "e4eff7",
 	IssueLabelScheduled:   "f4f4f4",
 	IssueLabelInFlight:    "f3f3d1",
 
-	IssueLabelProposal: "c2e0c6",
+	IssueLabelDiscuss: "c2e0c6",
 
 	// respect original github colors
 	IssueLabelBug:         "",
