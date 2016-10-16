@@ -119,12 +119,16 @@ func (syncer *Syncer) syncRepoStockLabels(repo *github.Repository) error {
 	}
 
 	missingLabels := map[string]string{}
-	for label, color := range stockLabels {
+	for label, color := range storyStateLabels {
+		missingLabels[label] = color
+	}
+
+	for label, color := range issueOnlyLabels {
 		missingLabels[label] = color
 	}
 
 	for _, label := range existingLabels {
-		color, found := stockLabels[*label.Name]
+		color, found := missingLabels[*label.Name]
 		if !found {
 			continue
 		}
@@ -391,7 +395,7 @@ func (syncer *Syncer) syncIssueLabels(
 	}
 
 	labelsToRemove := []string{}
-	for stockLabel, _ := range stockLabels {
+	for stockLabel, _ := range storyStateLabels {
 		if !existingLabels[stockLabel] {
 			continue
 		}

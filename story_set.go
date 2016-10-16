@@ -12,18 +12,19 @@ const IssueLabelScheduled = "scheduled"
 const IssueLabelInFlight = "in-flight"
 const IssueLabelBug = "bug"
 const IssueLabelEnhancement = "enhancement"
-const IssueLabelDiscuss = "discuss"
 
-var stockLabels = map[string]string{
+var storyStateLabels = map[string]string{
 	IssueLabelUnscheduled: "e4eff7",
 	IssueLabelScheduled:   "f4f4f4",
 	IssueLabelInFlight:    "f3f3d1",
 
-	IssueLabelDiscuss: "c2e0c6",
-
 	// respect original github colors
 	IssueLabelBug:         "",
 	IssueLabelEnhancement: "",
+}
+
+var issueOnlyLabels = map[string]string{
+	"discuss": "c2e0c6",
 }
 
 type StorySet []tracker.Story
