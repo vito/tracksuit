@@ -15,7 +15,7 @@ params:
 
 inputs:
 - name: tracksuit
-  path: gopath/src/github.com/billimek/tracksuit
+  path: gopath/src/github.com/vito/tracksuit
 
 run:
-  path: gopath/src/github.com/billimek/tracksuit/scripts/run
+  path: gopath/src/github.com/vito/tracksuit/scripts/run
