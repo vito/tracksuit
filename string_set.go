@@ -10,15 +10,6 @@ func NewStringSet() StringSet {
 	return StringSet{set: map[string]struct{}{}}
 }
 
-func (ss *StringSet) Members() []string {
-	ms := []string{}
-	for m, _ := range ss.set {
-		ms = append(ms, m)
-	}
-
-	return ms
-}
-
 func (ss *StringSet) Set(arg string) error {
 	args := strings.Split(arg, ",")
 	for _, s := range args {
