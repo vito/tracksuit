@@ -90,14 +90,13 @@ func (syncer *Syncer) issuesAndReposToSync() ([]github.Issue, []github.Repositor
 	var repos []github.Repository
 
 	options := &github.SearchOptions{}
-	options.ListOptions.PerPage = 100
 
 	query := syncer.issuesQuery()
 
 	log.Println("syncing issues via query:", query)
 
 	for {
-		resources, resp, err := syncer.GithubClient.Search.Issues(query, options)
+		resources, resp, err := syncer.GithubClient.Search.Issues(query, nil)
 		if err != nil {
 			return nil, nil, err
 		}
