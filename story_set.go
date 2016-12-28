@@ -29,6 +29,20 @@ var issueOnlyLabels = map[string]string{
 
 type StorySet []tracker.Story
 
+func (set StorySet) WithLabel(label string) StorySet {
+	var withLabel StorySet
+	for _, story := range set {
+		for _, storyLabel := range story.Labels {
+			if storyLabel.Name == label {
+				withLabel = append(withLabel, story)
+				break
+			}
+		}
+	}
+
+	return withLabel
+}
+
 func (set StorySet) AllAccepted() bool {
 	allAccepted := true
 	for _, story := range set {

@@ -50,9 +50,18 @@ type Syncer struct {
 	Repositories     StringSet
 
 	cachedUser *github.User
+
+	allStories StorySet
 }
 
 func (syncer *Syncer) SyncIssuesAndStories() error {
+	allStories, err := syncer.fetchAllStories()
+	if err != nil {
+		return fmt.Errorf("failed to fetch stories: %s", err)
+	}
+
+	syncer.allStories = allStories
+
 	repos, err := syncer.reposToSync()
 	if err != nil {
 		return fmt.Errorf("failed to fetch repos: %s", err)
@@ -81,6 +90,29 @@ func (syncer *Syncer) SyncIssuesAndStories() error {
 	}
 
 	return multiErr.ErrorOrNil()
+}
+
+func (syncer *Syncer) fetchAllStories() ([]tracker.Story, error) {
+	var allStories StorySet
+
+	query := tracker.StoriesQuery{}
+
+	for {
+		stories, _, err := syncer.ProjectClient.Stories(query)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(stories) == 0 {
+			break
+		}
+
+		allStories = append(allStories, stories...)
+
+		query.Offset = len(allStories)
+	}
+
+	return allStories, nil
 }
 
 func (syncer *Syncer) processRepoIssues(repo *github.Repository) error {
@@ -187,28 +219,9 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 ) error {
 	log.Printf("syncing %s: %s\n", label, *issue.Title)
 
-	var allStories StorySet
+	issueStories := syncer.allStories.WithLabel(label)
 
-	query := tracker.StoriesQuery{
-		Label: label,
-	}
-
-	for {
-		stories, _, err := syncer.ProjectClient.Stories(query)
-		if err != nil {
-			return fmt.Errorf("failed to search for stories %s: %s", label, err)
-		}
-
-		if len(stories) == 0 {
-			break
-		}
-
-		allStories = append(allStories, stories...)
-
-		query.Offset = len(allStories)
-	}
-
-	if len(allStories) == 0 {
+	if len(issueStories) == 0 {
 		// no stories for the issue yet; create an initial one
 
 		story := choreForNewIssue(label, issue)
@@ -220,9 +233,9 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 
 		log.Println("created story for", label, "at", createdStory.URL)
 
-		allStories = append(allStories, createdStory)
+		issueStories = append(issueStories, createdStory)
 
-	} else if allStories.AllAccepted() && issue.UpdatedAt.After(allStories.LastAccepted()) {
+	} else if issueStories.AllAccepted() && issue.UpdatedAt.After(issueStories.LastAccepted()) {
 		// issue has been reopened
 
 		story := choreForReopenedIssue(label, issue)
@@ -234,42 +247,42 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 
 		log.Println("created chore for reopening of", label, "at", createdStory.URL)
 
-		allStories = append(allStories, createdStory)
+		issueStories = append(issueStories, createdStory)
 	}
 
-	if len(allStories) == 1 && (allStories.Untriaged() || allStories.Unscheduled()) {
-		story := allStories[0]
+	if len(issueStories) == 1 && (issueStories.Untriaged() || issueStories.Unscheduled()) {
+		story := issueStories[0]
 
 		syncedStory, err := syncer.syncStoryFromIssue(story, issue)
 		if err != nil {
 			return fmt.Errorf("failed to sync story type for %d: %s", story.ID, err)
 		}
 
-		allStories[0] = syncedStory
+		issueStories[0] = syncedStory
 	}
 
-	if issue.PullRequestLinks != nil && !allStories.HasPR() {
-		if err := syncer.setHasPR(allStories); err != nil {
+	if issue.PullRequestLinks != nil && !issueStories.HasPR() {
+		if err := syncer.setHasPR(issueStories); err != nil {
 			return fmt.Errorf("failed to set has-pr label for stories: %s", err)
 		}
-	} else if issue.PullRequestLinks == nil && allStories.HasPR() {
-		if err := syncer.unsetHasPR(allStories); err != nil {
+	} else if issue.PullRequestLinks == nil && issueStories.HasPR() {
+		if err := syncer.unsetHasPR(issueStories); err != nil {
 			return fmt.Errorf("failed to remove has-pr label for stories: %s", err)
 		}
 	}
 
-	if err := syncer.ensureCommentWithStories(repo, issue, allStories); err != nil {
+	if err := syncer.ensureCommentWithStories(repo, issue, issueStories); err != nil {
 		return fmt.Errorf("failed to upsert comment for stories: %s", err)
 	}
 
-	if err := syncer.syncIssueLabels(repo, issue, allStories.IssueLabels()); err != nil {
+	if err := syncer.syncIssueLabels(repo, issue, issueStories.IssueLabels()); err != nil {
 		return fmt.Errorf("failed to sync story labels: %s", err)
 	}
 
-	if allStories.AllAccepted() {
+	if issueStories.AllAccepted() {
 		log.Println("all stories for", label, "are accepted; closing!")
 
-		err := syncer.closeIssue(repo, issue, allStories)
+		err := syncer.closeIssue(repo, issue, issueStories)
 		if err != nil {
 			return fmt.Errorf("failed to close issue: %s", err)
 		}
@@ -319,7 +332,7 @@ func (syncer *Syncer) unsetHasPR(stories StorySet) error {
 func (syncer *Syncer) ensureCommentWithStories(
 	repo *github.Repository,
 	issue *github.Issue,
-	allStories []tracker.Story,
+	issueStories []tracker.Story,
 ) error {
 	comments, err := syncer.allCommentsForIssue(repo, issue)
 	if err != nil {
@@ -340,7 +353,7 @@ func (syncer *Syncer) ensureCommentWithStories(
 	}
 
 	buf := new(bytes.Buffer)
-	if err := storyStateCommentTemplate.Execute(buf, allStories); err != nil {
+	if err := storyStateCommentTemplate.Execute(buf, issueStories); err != nil {
 		return fmt.Errorf("error building comment body: %s", err)
 	}
 
