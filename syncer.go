@@ -53,9 +53,9 @@ type Syncer struct {
 }
 
 func (syncer *Syncer) SyncIssuesAndStories() error {
-	repos, err := syncer.reposToSync()
+	issues, repos, err := syncer.issuesAndReposToSync()
 	if err != nil {
-		return fmt.Errorf("failed to fetch repos: %s", err)
+		return fmt.Errorf("failed to fetch issues: %s", err)
 	}
 
 	var multiErr *multierror.Error
@@ -63,38 +63,17 @@ func (syncer *Syncer) SyncIssuesAndStories() error {
 	for _, repo := range repos {
 		repoName := *repo.Owner.Login + "/" + *repo.Name
 
-		log.Println("syncing", repoName)
+		log.Println("syncing labels for", repoName)
 
 		if err := syncer.syncRepoStockLabels(repo); err != nil {
-			log.Printf("failed setting up labels; skipping %s: %s\n", repoName, err)
-			continue
-		}
-
-		if err := syncer.processRepoIssues(repo); err != nil {
-			log.Println("syncing failed:", err.Error())
-
-			multiErr = multierror.Append(
-				multiErr,
-				fmt.Errorf("errors when processing %s: %s", repoName, err),
-			)
+			log.Printf("failed setting up labels for %s: %s\n", repoName, err)
 		}
 	}
-
-	return multiErr.ErrorOrNil()
-}
-
-func (syncer *Syncer) processRepoIssues(repo *github.Repository) error {
-	issues, err := syncer.allIssues(repo)
-	if err != nil {
-		return fmt.Errorf("failed to fetch issues for %s: %s", *repo.Name, err)
-	}
-
-	var multiErr *multierror.Error
 
 	for _, issue := range issues {
-		label := trackerLabelForIssue(repo, issue)
+		label := trackerLabelForIssue(issue)
 
-		err := syncer.ensureStoryExistsForIssue(repo, issue, label)
+		err := syncer.ensureStoryExistsForIssue(issue, label)
 		if err != nil {
 			multiErr = multierror.Append(
 				multiErr,
@@ -106,7 +85,63 @@ func (syncer *Syncer) processRepoIssues(repo *github.Repository) error {
 	return multiErr.ErrorOrNil()
 }
 
-func (syncer *Syncer) syncRepoStockLabels(repo *github.Repository) error {
+func (syncer *Syncer) issuesAndReposToSync() ([]github.Issue, []github.Repository, error) {
+	var issues []github.Issue
+	var repos []github.Repository
+
+	options := &github.SearchOptions{}
+
+	query := syncer.issuesQuery()
+
+	log.Println("syncing issues via query:", query)
+
+	for {
+		resources, resp, err := syncer.GithubClient.Search.Issues(query, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if len(resources.Issues) == 0 {
+			break
+		}
+
+		issues = append(issues, resources.Issues...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		options.ListOptions.Page = resp.NextPage
+	}
+
+	repoMap := map[int]github.Repository{}
+
+	for _, issue := range issues {
+		repoMap[*issue.Repository.ID] = *issue.Repository
+	}
+
+	for _, repo := range repoMap {
+		repos = append(repos, repo)
+	}
+
+	return issues, repos, nil
+}
+
+func (syncer *Syncer) issuesQuery() string {
+	queries := []string{"state:open"}
+
+	if syncer.Repositories.IsEmpty() {
+		queries = append(queries, "user:"+syncer.OrganizationName)
+	} else {
+		for _, repo := range syncer.Repositories.Members() {
+			queries = append(queries, "repo:"+syncer.OrganizationName+"/"+repo)
+		}
+	}
+
+	return strings.Join(queries, " ")
+}
+
+func (syncer *Syncer) syncRepoStockLabels(repo github.Repository) error {
 	logName := *repo.Owner.Login + "/" + *repo.Name
 
 	existingLabels, _, err := syncer.GithubClient.Issues.ListLabels(
@@ -180,11 +215,7 @@ func (syncer *Syncer) syncRepoStockLabels(repo *github.Repository) error {
 	return nil
 }
 
-func (syncer *Syncer) ensureStoryExistsForIssue(
-	repo *github.Repository,
-	issue *github.Issue,
-	label string,
-) error {
+func (syncer *Syncer) ensureStoryExistsForIssue(issue github.Issue, label string) error {
 	log.Printf("syncing %s: %s\n", label, *issue.Title)
 
 	var allStories StorySet
@@ -258,18 +289,18 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 		}
 	}
 
-	if err := syncer.ensureCommentWithStories(repo, issue, allStories); err != nil {
+	if err := syncer.ensureCommentWithStories(issue, allStories); err != nil {
 		return fmt.Errorf("failed to upsert comment for stories: %s", err)
 	}
 
-	if err := syncer.syncIssueLabels(repo, issue, allStories.IssueLabels()); err != nil {
+	if err := syncer.syncIssueLabels(issue, allStories.IssueLabels()); err != nil {
 		return fmt.Errorf("failed to sync story labels: %s", err)
 	}
 
 	if allStories.AllAccepted() {
 		log.Println("all stories for", label, "are accepted; closing!")
 
-		err := syncer.closeIssue(repo, issue, allStories)
+		err := syncer.closeIssue(issue, allStories)
 		if err != nil {
 			return fmt.Errorf("failed to close issue: %s", err)
 		}
@@ -316,12 +347,8 @@ func (syncer *Syncer) unsetHasPR(stories StorySet) error {
 	return nil
 }
 
-func (syncer *Syncer) ensureCommentWithStories(
-	repo *github.Repository,
-	issue *github.Issue,
-	allStories []tracker.Story,
-) error {
-	comments, err := syncer.allCommentsForIssue(repo, issue)
+func (syncer *Syncer) ensureCommentWithStories(issue github.Issue, allStories []tracker.Story) error {
+	comments, err := syncer.allCommentsForIssue(issue)
 	if err != nil {
 		return fmt.Errorf("failed to fetch issue comments: %s", err)
 	}
@@ -348,8 +375,8 @@ func (syncer *Syncer) ensureCommentWithStories(
 
 	if existingComment == nil {
 		createdComment, _, err := syncer.GithubClient.Issues.CreateComment(
-			*repo.Owner.Login,
-			*repo.Name,
+			*issue.Repository.Owner.Login,
+			*issue.Repository.Name,
 			*issue.Number,
 			&github.IssueComment{Body: &commentBody},
 		)
@@ -362,8 +389,8 @@ func (syncer *Syncer) ensureCommentWithStories(
 		existingComment.Body = &commentBody
 
 		updatedComment, _, err := syncer.GithubClient.Issues.EditComment(
-			*repo.Owner.Login,
-			*repo.Name,
+			*issue.Repository.Owner.Login,
+			*issue.Repository.Name,
 			*existingComment.ID,
 			&github.IssueComment{Body: &commentBody},
 		)
@@ -377,11 +404,39 @@ func (syncer *Syncer) ensureCommentWithStories(
 	return nil
 }
 
-func (syncer *Syncer) syncIssueLabels(
-	repo *github.Repository,
-	issue *github.Issue,
-	labels []string,
-) error {
+func (syncer *Syncer) allCommentsForIssue(issue github.Issue) ([]*github.IssueComment, error) {
+	options := &github.IssueListCommentsOptions{}
+
+	var all []*github.IssueComment
+
+	for {
+		resources, resp, err := syncer.GithubClient.Issues.ListComments(
+			*issue.Repository.Owner.Login,
+			*issue.Repository.Name,
+			*issue.Number,
+			options,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(resources) == 0 {
+			break
+		}
+
+		all = append(all, resources...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		options.ListOptions.Page = resp.NextPage
+	}
+
+	return all, nil
+}
+
+func (syncer *Syncer) syncIssueLabels(issue github.Issue, labels []string) error {
 	existingLabels := map[string]bool{}
 	for _, label := range issue.Labels {
 		existingLabels[*label.Name] = true
@@ -421,8 +476,8 @@ func (syncer *Syncer) syncIssueLabels(
 
 	for _, label := range labelsToRemove {
 		_, err := syncer.GithubClient.Issues.RemoveLabelForIssue(
-			*repo.Owner.Login,
-			*repo.Name,
+			*issue.Repository.Owner.Login,
+			*issue.Repository.Name,
 			*issue.Number,
 			label,
 		)
@@ -432,8 +487,8 @@ func (syncer *Syncer) syncIssueLabels(
 	}
 
 	_, _, err := syncer.GithubClient.Issues.AddLabelsToIssue(
-		*repo.Owner.Login,
-		*repo.Name,
+		*issue.Repository.Owner.Login,
+		*issue.Repository.Name,
 		*issue.Number,
 		labelsToAdd,
 	)
@@ -444,11 +499,7 @@ func (syncer *Syncer) syncIssueLabels(
 	return nil
 }
 
-func (syncer *Syncer) closeIssue(
-	repo *github.Repository,
-	issue *github.Issue,
-	stories StorySet,
-) error {
+func (syncer *Syncer) closeIssue(issue github.Issue, stories StorySet) error {
 	buf := new(bytes.Buffer)
 	if err := issueClosedCommentTemplate.Execute(buf, stories); err != nil {
 		return fmt.Errorf("error building comment body: %s", err)
@@ -457,8 +508,8 @@ func (syncer *Syncer) closeIssue(
 	closedMessage := buf.String()
 
 	_, _, err := syncer.GithubClient.Issues.CreateComment(
-		*repo.Owner.Login,
-		*repo.Name,
+		*issue.Repository.Owner.Login,
+		*issue.Repository.Name,
 		*issue.Number,
 		&github.IssueComment{Body: &closedMessage},
 	)
@@ -468,8 +519,8 @@ func (syncer *Syncer) closeIssue(
 
 	state := "closed"
 	_, _, err = syncer.GithubClient.Issues.Edit(
-		*repo.Owner.Login,
-		*repo.Name,
+		*issue.Repository.Owner.Login,
+		*issue.Repository.Name,
 		*issue.Number,
 		&github.IssueRequest{State: &state},
 	)
@@ -493,7 +544,7 @@ func (syncer *Syncer) currentUser() (*github.User, error) {
 	return syncer.cachedUser, nil
 }
 
-func (syncer *Syncer) syncStoryFromIssue(story tracker.Story, issue *github.Issue) (tracker.Story, error) {
+func (syncer *Syncer) syncStoryFromIssue(story tracker.Story, issue github.Issue) (tracker.Story, error) {
 	storyType := issueStoryType(issue)
 
 	var err error
@@ -526,11 +577,11 @@ func (syncer *Syncer) syncStoryFromIssue(story tracker.Story, issue *github.Issu
 	return story, nil
 }
 
-func trackerLabelForIssue(repo *github.Repository, issue *github.Issue) string {
-	return fmt.Sprintf("%s/%s#%d", *repo.Owner.Login, *repo.Name, *issue.Number)
+func trackerLabelForIssue(issue github.Issue) string {
+	return fmt.Sprintf("%s/%s#%d", *issue.Repository.Owner.Login, *issue.Repository.Name, *issue.Number)
 }
 
-func choreForNewIssue(label string, issue *github.Issue) tracker.Story {
+func choreForNewIssue(label string, issue github.Issue) tracker.Story {
 	labels := []tracker.Label{
 		{Name: label},
 	}
@@ -559,7 +610,7 @@ func choreForNewIssue(label string, issue *github.Issue) tracker.Story {
 	}
 }
 
-func choreForReopenedIssue(label string, issue *github.Issue) tracker.Story {
+func choreForReopenedIssue(label string, issue github.Issue) tracker.Story {
 	labels := []tracker.Label{
 		{Name: label},
 	}
@@ -582,7 +633,7 @@ func choreForReopenedIssue(label string, issue *github.Issue) tracker.Story {
 	}
 }
 
-func issueStoryType(issue *github.Issue) tracker.StoryType {
+func issueStoryType(issue github.Issue) tracker.StoryType {
 	if issueHasLabel(issue, IssueLabelEnhancement) {
 		return tracker.StoryTypeFeature
 	}
@@ -594,7 +645,7 @@ func issueStoryType(issue *github.Issue) tracker.StoryType {
 	return tracker.StoryTypeChore
 }
 
-func issueHasLabel(issue *github.Issue, needle string) bool {
+func issueHasLabel(issue github.Issue, needle string) bool {
 	for _, label := range issue.Labels {
 		if *label.Name == needle {
 			return true
