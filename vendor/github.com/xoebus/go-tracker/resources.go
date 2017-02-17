@@ -2,7 +2,9 @@ package tracker
 
 import "time"
 
-type Me struct {
+type Me Person
+
+type Person struct {
 	Username string `json:"username"`
 	Name     string `json:"name"`
 	Initials string `json:"initials"`
@@ -104,5 +106,10 @@ type Activity struct {
 	PrimaryResources []interface{} `json:"primary_resources"`
 	Project          interface{}   `json:"project"`
 	PerformedBy      interface{}   `json:"performed_by"`
-	OccurredAt       int64         `json:"occurred_at"`
+	OccurredAt       time.Time     `json:"occurred_at"`
+}
+
+type ProjectMembership struct {
+	ID     int `json:"id"`
+	Person Person
 }

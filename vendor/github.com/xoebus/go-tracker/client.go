@@ -13,7 +13,7 @@ func NewClient(token string) *Client {
 }
 
 func (c Client) Me() (me Me, err error) {
-	request, err := c.conn.CreateRequest("GET", "/me")
+	request, err := c.conn.CreateRequest("GET", "/me", nil)
 	if err != nil {
 		return me, err
 	}

@@ -3,6 +3,7 @@ package tracker
 import (
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 type Query interface {
@@ -10,8 +11,9 @@ type Query interface {
 }
 
 type StoriesQuery struct {
-	State StoryState
-	Label string
+	State  StoryState
+	Label  string
+	Filter []string
 
 	Limit  int
 	Offset int
@@ -26,6 +28,10 @@ func (query StoriesQuery) Query() url.Values {
 
 	if query.Label != "" {
 		params.Set("with_label", query.Label)
+	}
+
+	if len(query.Filter) != 0 {
+		params.Set("filter", strings.Join(query.Filter, " "))
 	}
 
 	if query.Limit != 0 {

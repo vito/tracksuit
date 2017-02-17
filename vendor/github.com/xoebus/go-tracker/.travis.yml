@@ -1,7 +1,9 @@
 language: go
 
 go:
-- 1.4
+- 1.5
+- 1.6
+- 1.7
 
 sudo: false
 
@@ -16,7 +18,6 @@ before_install:
 
 install:
 - go get github.com/mattn/goveralls
-- go get golang.org/x/tools/cmd/vet
 - go get golang.org/x/tools/cmd/cover
 - go get github.com/onsi/ginkgo/ginkgo
 - go get github.com/onsi/gomega

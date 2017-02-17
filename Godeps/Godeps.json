@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/vito/tracksuit",
 	"GoVersion": "go1.6",
-	"GodepVersion": "v74",
+	"GodepVersion": "v75",
 	"Packages": [
 		"./..."
 	],
@@ -24,7 +24,7 @@
 		},
 		{
 			"ImportPath": "github.com/xoebus/go-tracker",
-			"Rev": "0c970b98a360654dd9029accf174aae2ee96801b"
+			"Rev": "76b8b034a7bb6930fac397cc16f24d9360acee34"
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
