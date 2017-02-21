@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -142,6 +143,7 @@ func (syncer *Syncer) syncRepoStockLabels(repo *github.Repository) error {
 	logName := *repo.Owner.Login + "/" + *repo.Name
 
 	existingLabels, _, err := syncer.GithubClient.Issues.ListLabels(
+		context.TODO(),
 		*repo.Owner.Login,
 		*repo.Name,
 		&github.ListOptions{},
@@ -180,6 +182,7 @@ func (syncer *Syncer) syncRepoStockLabels(repo *github.Repository) error {
 		log.Printf("updating label '%s' in repo %s\n", *label.Name, logName)
 
 		_, _, err := syncer.GithubClient.Issues.EditLabel(
+			context.TODO(),
 			*repo.Owner.Login,
 			*repo.Name,
 			*label.Name,
@@ -197,6 +200,7 @@ func (syncer *Syncer) syncRepoStockLabels(repo *github.Repository) error {
 		log.Printf("creating label '%s' in repo %s\n", name, logName)
 
 		_, _, err := syncer.GithubClient.Issues.CreateLabel(
+			context.TODO(),
 			*repo.Owner.Login,
 			*repo.Name,
 			&github.Label{
@@ -361,6 +365,7 @@ func (syncer *Syncer) ensureCommentWithStories(
 
 	if existingComment == nil {
 		createdComment, _, err := syncer.GithubClient.Issues.CreateComment(
+			context.TODO(),
 			*repo.Owner.Login,
 			*repo.Name,
 			*issue.Number,
@@ -375,6 +380,7 @@ func (syncer *Syncer) ensureCommentWithStories(
 		existingComment.Body = &commentBody
 
 		updatedComment, _, err := syncer.GithubClient.Issues.EditComment(
+			context.TODO(),
 			*repo.Owner.Login,
 			*repo.Name,
 			*existingComment.ID,
@@ -434,6 +440,7 @@ func (syncer *Syncer) syncIssueLabels(
 
 	for _, label := range labelsToRemove {
 		_, err := syncer.GithubClient.Issues.RemoveLabelForIssue(
+			context.TODO(),
 			*repo.Owner.Login,
 			*repo.Name,
 			*issue.Number,
@@ -445,6 +452,7 @@ func (syncer *Syncer) syncIssueLabels(
 	}
 
 	_, _, err := syncer.GithubClient.Issues.AddLabelsToIssue(
+		context.TODO(),
 		*repo.Owner.Login,
 		*repo.Name,
 		*issue.Number,
@@ -470,6 +478,7 @@ func (syncer *Syncer) closeIssue(
 	closedMessage := buf.String()
 
 	_, _, err := syncer.GithubClient.Issues.CreateComment(
+		context.TODO(),
 		*repo.Owner.Login,
 		*repo.Name,
 		*issue.Number,
@@ -481,6 +490,7 @@ func (syncer *Syncer) closeIssue(
 
 	state := "closed"
 	_, _, err = syncer.GithubClient.Issues.Edit(
+		context.TODO(),
 		*repo.Owner.Login,
 		*repo.Name,
 		*issue.Number,
@@ -495,7 +505,7 @@ func (syncer *Syncer) closeIssue(
 
 func (syncer *Syncer) currentUser() (*github.User, error) {
 	if syncer.cachedUser == nil {
-		user, _, err := syncer.GithubClient.Users.Get("")
+		user, _, err := syncer.GithubClient.Users.Get(context.TODO(), "")
 		if err != nil {
 			return nil, err
 		}

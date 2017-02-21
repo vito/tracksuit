@@ -1,6 +1,10 @@
 package main
 
-import "github.com/google/go-github/github"
+import (
+	"context"
+
+	"github.com/google/go-github/github"
+)
 
 var publicReposFilter = github.RepositoryListByOrgOptions{Type: "public"}
 var openIssuesFilter = github.IssueListByRepoOptions{State: "open"}
@@ -12,6 +16,7 @@ func (syncer *Syncer) reposToSync() ([]*github.Repository, error) {
 
 	for {
 		resources, resp, err := syncer.GithubClient.Repositories.ListByOrg(
+			context.TODO(),
 			syncer.OrganizationName,
 			&options,
 		)
@@ -46,6 +51,7 @@ func (syncer *Syncer) allIssues(repo *github.Repository) ([]*github.Issue, error
 
 	for {
 		resources, resp, err := syncer.GithubClient.Issues.ListByRepo(
+			context.TODO(),
 			*repo.Owner.Login,
 			*repo.Name,
 			&options,
@@ -80,6 +86,7 @@ func (syncer *Syncer) allCommentsForIssue(
 
 	for {
 		resources, resp, err := syncer.GithubClient.Issues.ListComments(
+			context.TODO(),
 			*repo.Owner.Login,
 			*repo.Name,
 			*issue.Number,

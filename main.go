@@ -82,13 +82,11 @@ func main() {
 	}
 
 	if err := syncer.SyncIssuesAndStories(); err != nil {
-		log.Println("failed to sync; remaining requests:", syncer.GithubClient.Rate().Remaining)
-		println("")
 		println(err.Error())
 		os.Exit(1)
 	}
 
-	log.Println("synced; remaining requests:", syncer.GithubClient.Rate().Remaining)
+	log.Println("synced")
 
 	if *gcLabels {
 		log.Println("gcing labels")
