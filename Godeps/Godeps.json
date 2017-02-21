@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/vito/tracksuit",
-	"GoVersion": "go1.6",
+	"GoVersion": "go1.7",
 	"GodepVersion": "v75",
 	"Packages": [
 		"./..."
@@ -8,11 +8,11 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/google/go-github/github",
-			"Rev": "f6f75a742a52df1fd2f2ba9346dc59a864a9166d"
+			"Rev": "23d6cb9cacb5aa314e93d600fe20a48496a718d4"
 		},
 		{
 			"ImportPath": "github.com/google/go-querystring/query",
-			"Rev": "9235644dd9e52eeae6fa48efd539fdc351a0af53"
+			"Rev": "53e6ce116135b80d037921a7fdd5138cf32d7a8a"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/errwrap",
@@ -20,7 +20,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-multierror",
-			"Rev": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
+			"Rev": "ed905158d87462226a13fe39ddf685ea65f1c11f"
 		},
 		{
 			"ImportPath": "github.com/xoebus/go-tracker",
@@ -28,15 +28,15 @@
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
-			"Rev": "f841c39de738b1d0df95b5a7187744f0e03d8112"
+			"Rev": "6b27048ae5e6ad1ef927e72e437531493de612fe"
 		},
 		{
 			"ImportPath": "golang.org/x/oauth2",
-			"Rev": "7357e96168422ba1e6e7f21075713b72d58764e7"
+			"Rev": "b9780ec78894ab900c062d58ee3076cd9b2a4501"
 		},
 		{
 			"ImportPath": "golang.org/x/oauth2/internal",
-			"Rev": "7357e96168422ba1e6e7f21075713b72d58764e7"
+			"Rev": "b9780ec78894ab900c062d58ee3076cd9b2a4501"
 		}
 	]
 }
