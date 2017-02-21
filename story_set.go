@@ -43,6 +43,40 @@ func (set StorySet) WithLabel(label string) StorySet {
 	return withLabel
 }
 
+func (set StorySet) Dedupe() (StorySet, StorySet) {
+	byName := map[string]StorySet{}
+
+	for _, story := range set {
+		byName[story.Name] = append(byName[story.Name], story)
+	}
+
+	deduped := StorySet{}
+	dupes := StorySet{}
+
+	for _, stories := range byName {
+		if len(stories) == 1 {
+			deduped = append(deduped, stories[0])
+			continue
+		}
+
+		var oldestStory tracker.Story
+		for _, story := range stories {
+			if oldestStory.ID == 0 || story.ID < oldestStory.ID {
+				oldestStory = story
+			}
+		}
+
+		deduped = append(deduped, oldestStory)
+		for _, story := range stories {
+			if story.ID != oldestStory.ID {
+				dupes = append(dupes, story)
+			}
+		}
+	}
+
+	return deduped, dupes
+}
+
 func (set StorySet) AllAccepted() bool {
 	allAccepted := true
 	for _, story := range set {

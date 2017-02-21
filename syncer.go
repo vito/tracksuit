@@ -225,6 +225,15 @@ func (syncer *Syncer) ensureStoryExistsForIssue(
 
 	issueStories := syncer.allStories.WithLabel(label)
 
+	issueStories, dupes := issueStories.Dedupe()
+	for _, dupe := range dupes {
+		log.Println("removing dupe:", dupe.ID)
+		err := syncer.ProjectClient.DeleteStory(dupe.ID)
+		if err != nil {
+			log.Println("failed to remove dupe:", dupe.ID)
+		}
+	}
+
 	if len(issueStories) == 0 {
 		// no stories for the issue yet; create an initial one
 
