@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/xoebus/go-tracker"
@@ -43,17 +45,36 @@ func (set StorySet) WithLabel(label string) StorySet {
 	return withLabel
 }
 
+type dupeEquivalence struct {
+	name        string
+	description string
+	labels      string
+}
+
 func (set StorySet) Dedupe() (StorySet, StorySet) {
-	byName := map[string]StorySet{}
+	byEquivalence := map[dupeEquivalence]StorySet{}
 
 	for _, story := range set {
-		byName[story.Name] = append(byName[story.Name], story)
+		labelNames := []string{}
+		for _, label := range story.Labels {
+			labelNames = append(labelNames, label.Name)
+		}
+
+		sort.Strings(labelNames)
+
+		eq := dupeEquivalence{
+			name:        story.Name,
+			description: story.Description,
+			labels:      strings.Join(labelNames, ","),
+		}
+
+		byEquivalence[eq] = append(byEquivalence[eq], story)
 	}
 
 	deduped := StorySet{}
 	dupes := StorySet{}
 
-	for _, stories := range byName {
+	for _, stories := range byEquivalence {
 		if len(stories) == 1 {
 			deduped = append(deduped, stories[0])
 			continue
