@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/vito/tracksuit",
-	"GoVersion": "go1.7",
-	"GodepVersion": "v75",
+	"GoVersion": "go1.8",
+	"GodepVersion": "v79",
 	"Packages": [
 		"./..."
 	],
@@ -21,6 +21,11 @@
 		{
 			"ImportPath": "github.com/hashicorp/go-multierror",
 			"Rev": "ed905158d87462226a13fe39ddf685ea65f1c11f"
+		},
+		{
+			"ImportPath": "github.com/jessevdk/go-flags",
+			"Comment": "v1.2.0-1-g460c7bb",
+			"Rev": "460c7bb0abd6e927f2767cadc91aa6ef776a98b4"
 		},
 		{
 			"ImportPath": "github.com/xoebus/go-tracker",

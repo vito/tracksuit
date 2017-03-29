@@ -48,7 +48,9 @@ type Syncer struct {
 	ProjectClient tracker.ProjectClient
 
 	OrganizationName string
-	Repositories     StringSet
+	Repositories     []string
+
+	AdditionalLabels map[string]string
 
 	cachedUser *github.User
 
@@ -158,6 +160,10 @@ func (syncer *Syncer) syncRepoStockLabels(repo *github.Repository) error {
 	}
 
 	for label, color := range issueOnlyLabels {
+		missingLabels[label] = color
+	}
+
+	for label, color := range syncer.AdditionalLabels {
 		missingLabels[label] = color
 	}
 
@@ -552,6 +558,28 @@ func (syncer *Syncer) syncStoryFromIssue(story tracker.Story, issue *github.Issu
 		story, err = syncer.ProjectClient.SetStoryName(story.ID, *issue.Title)
 		if err != nil {
 			return tracker.Story{}, err
+		}
+	}
+
+nextIssueLabel:
+	for _, label := range issue.Labels {
+		for boringLabel := range storyStateLabels {
+			if *label.Name == boringLabel {
+				continue nextIssueLabel
+			}
+		}
+
+		for _, storyLabel := range story.Labels {
+			if *label.Name == storyLabel.Name {
+				continue nextIssueLabel
+			}
+		}
+
+		log.Println("syncing issue label", *label.Name, "to story", story.ID)
+
+		_, err = syncer.ProjectClient.AddStoryLabel(story.ID, *label.Name)
+		if err != nil {
+			log.Println("warning - failed to add label to story:", err)
 		}
 	}
 

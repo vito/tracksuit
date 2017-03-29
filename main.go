@@ -1,94 +1,61 @@
 package main
 
 import (
-	"flag"
+	"fmt"
 	"log"
 	"os"
-	"reflect"
 
 	"github.com/google/go-github/github"
+	flags "github.com/jessevdk/go-flags"
 	"github.com/xoebus/go-tracker"
 	"golang.org/x/oauth2"
 )
 
-var githubToken = flag.String(
-	"github-token",
-	"",
-	"Github access token",
-)
+type TracksuitCommand struct {
+	GitHub struct {
+		Token            string `long:"token"             required:"true" description:"GitHub access token"`
+		OrganizationName string `long:"organization-name" required:"true" description:"GitHub organization name"`
 
-var trackerToken = flag.String(
-	"tracker-token",
-	"",
-	"Pivotal Tracker access token",
-)
+		Repositories []string `long:"repository" desciption:"Repository to sync. Can be repeated to sync many repositories. If omitted, all repositories are synced."`
+	} `group:"GitHub Configuration" namespace:"github"`
 
-var projectID = flag.Int(
-	"project-id",
-	0,
-	"Tracker project ID",
-)
+	Tracker struct {
+		Token     string `long:"token"      required:"true" description:"Tracker Access token"`
+		ProjectID int    `long:"project-id" required:"true" description:"Tracker project ID"`
+	} `group:"Pivotal Tracker Configuration" namespace:"tracker"`
 
-var organizationName = flag.String(
-	"organization",
-	"",
-	"Github organization name",
-)
+	AdditionalLabels map[string]string `long:"label" value-name:"NAME:COLOR" description:"Additional labels to sync up between GitHub and Tracker. They will be created on the synced GitHub repositories automatically. Color must not include '#'."`
 
-var gcLabels = flag.Bool(
-	"gc-labels",
-	false,
-	"Garbage-collect unused Tracker labels",
-)
-
-var repositories = NewStringSet()
-
-func required(thing interface{}, flag string) {
-	if reflect.DeepEqual(thing, reflect.Zero(reflect.TypeOf(thing)).Interface()) {
-		println("must specify " + flag)
-		os.Exit(1)
-	}
+	GCLabels bool `long:"gc-labels" description:"Garbage collect labels in Tracker that no longer reference an issue"`
 }
 
-func main() {
-	flag.Var(
-		&repositories,
-		"repositories",
-		"Comma separated list of repositories to sync, can be provided more than once (default: all in provided organization)",
-	)
-
-	flag.Parse()
-
-	required(*trackerToken, "--tracker-token")
-	required(*githubToken, "--github-token")
-	required(*projectID, "--project-id")
-	required(*organizationName, "--organization")
-
-	ghToken := &oauth2.Token{AccessToken: *githubToken}
+func (cmd *TracksuitCommand) Execute(argv []string) error {
+	ghToken := &oauth2.Token{AccessToken: cmd.GitHub.Token}
 
 	ghAuth := oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(ghToken))
 
 	githubClient := github.NewClient(ghAuth)
 
-	trackerClient := tracker.NewClient(*trackerToken)
-	projectClient := trackerClient.InProject(*projectID)
+	trackerClient := tracker.NewClient(cmd.Tracker.Token)
+	projectClient := trackerClient.InProject(cmd.Tracker.ProjectID)
 
 	syncer := &Syncer{
 		GithubClient:  githubClient,
 		ProjectClient: projectClient,
 
-		OrganizationName: *organizationName,
-		Repositories:     repositories,
+		OrganizationName: cmd.GitHub.OrganizationName,
+		Repositories:     cmd.GitHub.Repositories,
+
+		AdditionalLabels: cmd.AdditionalLabels,
 	}
 
 	if err := syncer.SyncIssuesAndStories(); err != nil {
-		println(err.Error())
-		os.Exit(1)
+		return err
 	}
 
 	log.Println("synced")
 
-	if *gcLabels {
+	if cmd.GCLabels {
 		log.Println("gcing labels")
 
 		gcer := &LabelGCer{
@@ -96,5 +63,25 @@ func main() {
 		}
 
 		gcer.GC()
+	}
+
+	return nil
+}
+
+func main() {
+	cmd := &TracksuitCommand{}
+
+	parser := flags.NewParser(cmd, flags.Default)
+	parser.NamespaceDelimiter = "-"
+
+	args, err := parser.Parse()
+	if err != nil {
+		os.Exit(1)
+	}
+
+	err = cmd.Execute(args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }

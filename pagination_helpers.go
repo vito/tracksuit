@@ -29,7 +29,7 @@ func (syncer *Syncer) reposToSync() ([]*github.Repository, error) {
 		}
 
 		for _, repo := range resources {
-			if syncer.Repositories.IsEmpty() || syncer.Repositories.Contains(*repo.Name) {
+			if syncer.shouldSync(repo) {
 				repos = append(repos, repo)
 			}
 		}
@@ -42,6 +42,20 @@ func (syncer *Syncer) reposToSync() ([]*github.Repository, error) {
 	}
 
 	return repos, nil
+}
+
+func (syncer *Syncer) shouldSync(repository *github.Repository) bool {
+	if len(syncer.Repositories) == 0 {
+		return true
+	}
+
+	for _, name := range syncer.Repositories {
+		if name == *repository.Name {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (syncer *Syncer) allIssues(repo *github.Repository) ([]*github.Issue, error) {
