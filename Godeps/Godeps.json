@@ -28,6 +28,10 @@
 			"Rev": "460c7bb0abd6e927f2767cadc91aa6ef776a98b4"
 		},
 		{
+			"ImportPath": "github.com/vito/twentythousandtonnesofcrudeoil",
+			"Rev": "3e536861fd39c9669ed0f8ceae5280ee6830a781"
+		},
+		{
 			"ImportPath": "github.com/xoebus/go-tracker",
 			"Rev": "76b8b034a7bb6930fac397cc16f24d9360acee34"
 		},

@@ -6,12 +6,21 @@ image_resource:
   source: {repository: golang}
 
 params:
+  # deprecated; use the below env vars
   GITHUB_TOKEN:
   TRACKER_TOKEN:
   PROJECT_ID:
   ORGANIZATION:
   REPOSITORIES:
   GC_LABELS: "false"
+
+  TRACKSUIT_GITHUB_TOKEN:
+  TRACKSUIT_GITHUB_ORGANIZATION_NAME:
+  TRACKSUIT_GITHUB_REPOSITORIES:
+  TRACKSUIT_TRACKER_TOKEN:
+  TRACKSUIT_TRACKER_PROJECT_ID:
+  TRACKSUIT_GC_LABELS: "false"
+  TRACKSUIT_ADDITIONAL_LABELS:
 
 inputs:
 - name: tracksuit

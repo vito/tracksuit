@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-github/github"
 	flags "github.com/jessevdk/go-flags"
+	"github.com/vito/twentythousandtonnesofcrudeoil"
 	"github.com/xoebus/go-tracker"
 	"golang.org/x/oauth2"
 )
@@ -73,6 +74,8 @@ func main() {
 
 	parser := flags.NewParser(cmd, flags.Default)
 	parser.NamespaceDelimiter = "-"
+
+	twentythousandtonnesofcrudeoil.TheEnvironmentIsPerfectlySafe(parser, "TRACKSUIT_")
 
 	args, err := parser.Parse()
 	if err != nil {
