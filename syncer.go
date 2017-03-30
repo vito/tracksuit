@@ -205,7 +205,9 @@ func (syncer *Syncer) syncRepoStockLabels(repo *github.Repository) error {
 	}
 
 	for name, color := range missingLabels {
-		log.Printf("creating label '%s' in repo %s\n", name, logName)
+		log.Printf("creating label '%s' with color '%s' in repo %s\n", name, color, logName)
+
+		color = strings.TrimLeft(color, "#")
 
 		_, _, err := syncer.GithubClient.Issues.CreateLabel(
 			context.TODO(),
