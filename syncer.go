@@ -173,6 +173,8 @@ func (syncer *Syncer) syncRepoStockLabels(repo *github.Repository) error {
 			continue
 		}
 
+		color = strings.TrimLeft(color, "#")
+
 		delete(missingLabels, *label.Name)
 
 		if len(color) == 0 {

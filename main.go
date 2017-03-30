@@ -25,7 +25,7 @@ type TracksuitCommand struct {
 		ProjectID int    `long:"project-id" required:"true" description:"Tracker project ID"`
 	} `group:"Pivotal Tracker Configuration" namespace:"tracker"`
 
-	AdditionalLabels map[string]string `long:"label" value-name:"NAME:COLOR" description:"Additional labels to sync up between GitHub and Tracker. They will be created on the synced GitHub repositories automatically. Color must not include '#'."`
+	AdditionalLabels map[string]string `long:"label" value-name:"NAME:COLOR" description:"Additional labels to sync up between GitHub and Tracker. They will be created on the synced GitHub repositories automatically."`
 
 	GCLabels bool `long:"gc-labels" description:"Garbage collect labels in Tracker that no longer reference an issue"`
 }
