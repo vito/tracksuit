@@ -48,7 +48,8 @@ type Syncer struct {
 	ProjectClient tracker.ProjectClient
 
 	OrganizationName string
-	Repositories     []string
+
+	Repositories []string
 
 	AdditionalLabels map[string]string
 
