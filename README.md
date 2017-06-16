@@ -17,3 +17,7 @@ keeps Github issues and Tracker stories in sync by doing the following:
 it is implemented as a stateless CLI, and you just give it flags for the Github
 organization and Tracker project ID to sync up. comments and stories will be
 created as the user for the respective tokens.
+
+### Running in concourse
+* Load the pipeline with something like this: `fly -t ci set-pipeline -p tracksuit -c ci/pipeline.yml -l ~/src/credentials.yml`
+ * Where credentials.yml contains things like tracksuit-github-token, tracksuit-tracker-token, etc
