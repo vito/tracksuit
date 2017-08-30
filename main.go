@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 
 	"github.com/google/go-github/github"
@@ -18,6 +19,7 @@ type TracksuitCommand struct {
 		OrganizationName string `long:"organization-name" required:"true" description:"GitHub organization name"`
 
 		Repositories []string `long:"repository" desciption:"Repository to sync. Can be repeated to sync many repositories. If omitted, all repositories are synced."`
+		APIURL string `long:"api-url" description:"Github api url. If omitted it defaults to api.github.com"`
 	} `group:"GitHub Configuration" namespace:"github"`
 
 	Tracker struct {
@@ -36,6 +38,15 @@ func (cmd *TracksuitCommand) Execute(argv []string) error {
 	ghAuth := oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(ghToken))
 
 	githubClient := github.NewClient(ghAuth)
+
+	if cmd.GitHub.APIURL != "" {
+		var url *url.URL
+		url, err := url.Parse(cmd.GitHub.APIURL)
+		if err != nil {
+			return err
+		}
+		githubClient.BaseURL = url
+	}
 
 	trackerClient := tracker.NewClient(cmd.Tracker.Token)
 	projectClient := trackerClient.InProject(cmd.Tracker.ProjectID)
